@@ -1027,7 +1027,7 @@ function cisBuild(s){CIS.group=new THREE.Group();CIS.group.name='CIS-Kategorie-'
  for(const fg of CIS.floorGroups){const staticGroup=new THREE.Group();fg.add(staticGroup);for(const r of CIS.slots.filter(r=>r.g.parent===fg&&r.status!=='bau')){const keep=new Set();if(r.gate)keep.add(r.gate);if(r.site)keep.add(r.site.g);r.g.traverse(o=>{if(o===r.g||!o.isMesh||o===r.plaque||CIS.roof.includes(o)||CIS.doors.some(d=>d.leaf===o))return;let p=o;while(p&&p!==r.g){if(keep.has(p)||!p.visible)return;p=p.parent;}o.updateWorldMatrix(true,false);const matrix=o.matrixWorld.clone();staticGroup.updateWorldMatrix(true,false);matrix.premultiply(staticGroup.matrixWorld.clone().invert());const clone=o.clone();clone.matrixAutoUpdate=false;clone.matrix.copy(matrix);staticGroup.add(clone);o.visible=false;});}batchStatic(staticGroup);}
  for(const fg of CIS.floorGroups){const roofs=new THREE.Group();fg.add(roofs);for(const roof of [...CIS.roof])if(roof.parent&&fg.getObjectById(roof.id))roofs.attach(roof);batchStatic(roofs);roofs.userData.dynamic=true;CIS.roof=CIS.roof.filter(o=>!roofs.getObjectById(o.id));CIS.roof.push(roofs);collectStatic(fg,'Flurboden und Fassade');}batchStatic(earth);CIS.group.updateMatrixWorld(true);cisCameras();cisVisibility();}
 function cisVisibility(){if(!CIS.active)return;CIS.floorGroups.forEach((g,f)=>g.visible=!cutaway||f===activeFloor);CIS.roof.forEach(o=>o.visible=!cutaway);for(const m of [materials.stucco,materials.brick]){m.clippingPlanes=cutaway?[new THREE.Plane(cisPoint(0,-1,0),activeFloor*5.4+1.45)]:[];m.needsUpdate=true;}renderer.localClippingEnabled=true;}
-function cisCameras(){const {center:c,size:d}=CIS.bounds,r=Math.max(d.x,d.z)*.8+30;controls.maxDistance=1200;camera.far=1800;camera.updateProjectionMatrix();scene.fog.near=700;scene.fog.far=1600;for(const [key,pos,target,name] of [['overview',[c.x+r*.65,r*.65,c.z+r],[c.x,1,c.z],'CIS '+CIS.cat+' · Gesamtansicht'],['front',[c.x+25,38,CIS.roadZ+65],[CIS.cat===4?0:12,1,6],'Alle Feuerwehr- und RTW-Garagen'],['garages',[c.x+25,48,CIS.roadZ+65],[CIS.cat===4?0:12,1,6],'Alle Feuerwehr- und RTW-Garagen'],['yard',[c.x+30,32,CIS.roadZ+45],[CIS.cat===4?0:12,1,10],'Zufahrten und Fahrzeugbewegungen'],['inside',[c.x+30,Math.max(50,r*.65),c.z+30],[c.x,activeFloor*5.4,c.z],'Schwarz · Schleuse · Weiß']])cameraPresets[key]={pos,target,name};const halfV=THREE.MathUtils.degToRad(camera.fov/2),halfH=Math.atan(Math.tan(halfV)*camera.aspect),dist=d.length()*.55/Math.sin(Math.min(halfV,halfH));const eye=cisPoint(.65,.8,1).normalize().multiplyScalar(dist);cameraPresets.overview.pos=[c.x+eye.x,c.y+eye.y,c.z+eye.z];}
+function cisCameras(){const {center:c,size:d}=CIS.bounds,r=Math.max(d.x,d.z)*.8+30;controls.maxDistance=1200;camera.far=1800;camera.updateProjectionMatrix();scene.fog.near=700;scene.fog.far=1600;for(const [key,pos,target,name] of [['overview',[c.x+r*.65,r*.65,c.z+r],[c.x,1,c.z],'Wache · Gesamtansicht'],['front',[c.x+25,38,CIS.roadZ+65],[CIS.cat===4?0:12,1,6],'Alle Feuerwehr- und RTW-Garagen'],['garages',[c.x+25,48,CIS.roadZ+65],[CIS.cat===4?0:12,1,6],'Alle Feuerwehr- und RTW-Garagen'],['yard',[c.x+30,32,CIS.roadZ+45],[CIS.cat===4?0:12,1,10],'Zufahrten und Fahrzeugbewegungen'],['inside',[c.x+30,Math.max(50,r*.65),c.z+30],[c.x,activeFloor*5.4,c.z],'Schwarz · Schleuse · Weiß']])cameraPresets[key]={pos,target,name};const halfV=THREE.MathUtils.degToRad(camera.fov/2),halfH=Math.atan(Math.tan(halfV)*camera.aspect),dist=d.length()*.55/Math.sin(Math.min(halfV,halfH));const eye=cisPoint(.65,.8,1).normalize().multiplyScalar(dist);cameraPresets.overview.pos=[c.x+eye.x,c.y+eye.y,c.z+eye.z];}
 function cisDispose(){if(!CIS.group)return;const geometries=new Set(),textures=new Set(),mats=new Set();CIS.group.traverse(o=>{if(o.isMesh){geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});const sharedGeo=new Set([unitBox,...V68GEO.values()]),sharedMat=new Set([...Object.values(materials),...V68MAT.values()]);root.traverse(o=>{if(!o.isMesh||CIS.group.getObjectById(o.id))return;sharedGeo.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])sharedMat.add(m);});CIS.group.removeFromParent();for(const g of geometries)if(!sharedGeo.has(g))g.dispose();for(const m of mats)if(!sharedMat.has(m)){if(m.map)textures.add(m.map);m.dispose();}textures.forEach(t=>t.dispose());CIS.group=null;}
 function cisCancel(reason){for(const [i,j] of CIS.jobs){j.crew.forEach(p=>p.g.removeFromParent());const c=cars[i];if(c){c.g.position.copy(c.start);c.g.rotation.y=c.parkRotation||0;}}CIS.jobs.clear();if(CIS.cart){const j=CIS.cart;j.cart.g.removeFromParent();j.person.g.removeFromParent();window.dispatchEvent(new CustomEvent('wach112:cart-cancelled',{detail:{id:j.id,art:j.art,vonRaumIndex:j.from,nachRaumIndex:j.to,menge:j.count,reason}}));CIS.cart=null;}CIS.deliveries.forEach(g=>g.removeFromParent());CIS.deliveries=[];}
 function cisEnter(){if(CIS.active)return;cancelMotions();cancelCrew();for(const j of V68.transports){j.cart.g.removeFromParent();j.person.g.removeFromParent();}V68.transports.length=0;CIS.legacy={handlers:Object.fromEntries(['builderToggle','serviceToggle','gates','build','roomSelect','level'].map(id=>[id,{click:$(id).onclick,change:$(id).onchange,html:$(id).innerHTML}])),objects:root.children.filter(o=>!cars.some(c=>c.g===o)).map(o=>[o,o.visible]),facade:window.__facade,presets:JSON.parse(JSON.stringify(cameraPresets))};CIS.legacy.objects.forEach(([o])=>o.visible=false);lamps.forEach(l=>l.visible=false);CIS.active=true;serviceJob=null;dispatch=0;}
@@ -81579,7 +81579,7 @@ const minCat=k=>[1,2,3,4].find(c=>TPL[c].cnt[k]);
 function initFl(cat){const T=TPL[cat],fl={ug:null,eg:[],og1:null,og2:null,og3:null,hof:[]};
   for(const f of T.fls)fl[f]=fl[f]||[];
   const put=(f,k,lv)=>{const have=fl[f].filter(r=>r.k===k).length,s=(T.list[k]||[]).filter(s=>s.fl===f)[have];if(s)fl[f].push({k,c:s.c,r:s.r,lv:lv||1})};
-  put('eg','halle');put('eg','halle');
+  put('eg','halle');
   if(T.fls.includes('og1')){put('eg','treppe');put('og1','treppe');put('og1','mannschaft',2)}else put('eg','mannschaft',2);
   return fl}
 function reslot(st,cat){const old=[];for(const f of FLORD)for(const r of st.fl[f]||[])old.push(r);
@@ -81870,7 +81870,7 @@ const fxBuero=()=>(1+.05*mn(cntAll('buero'),3))*(hasT('pr')?1.08:1)*(S&&S.diff?S
 const fxFit=st=>1+.08*mn(st?cntIn(st,'fitness'):0,4);
 const fxRet=st=>Math.max(.5,1-.1*mn(st?cntIn(st,'werkstatt'):0,3)-.05*mn(st?cntIn(st,'waschstr'):0,2));
 const hasUp=st=>['og1','og2','og3','ug'].some(f=>(st.fl[f]||[]).length>0);
-const ausr=st=>Math.max(.9,2.3-.4*mn(cntIn(st,'umkleide'),2)-.3*mn(cntIn(st,'zentrale'),2)-.3*mn(cntIn(st,'sirene'),1))+((st.cond??100)<60?.3:0)+((st.cond??100)<30?.4:0)-(hasT('funk')?.2:0)+(hasUp(st)&&!(cntIn(st,'treppe')+cntIn(st,'aufzug'))?.3:0)-(cntIn(st,'aufzug')?.1:0)-(cntIn(st,'ampel')?.2:0);
+const ausr=st=>Math.max(.7,2.3-(S.day-(st.plan??-99)<=2?.3:0)-.4*mn(cntIn(st,'umkleide'),2)-.3*mn(cntIn(st,'zentrale'),2)-.3*mn(cntIn(st,'sirene'),1))+((st.cond??100)<60?.3:0)+((st.cond??100)<30?.4:0)-(hasT('funk')?.2:0)+(hasUp(st)&&!(cntIn(st,'treppe')+cntIn(st,'aufzug'))?.3:0)-(cntIn(st,'aufzug')?.1:0)-(cntIn(st,'ampel')?.2:0);
 const allRooms=st=>FLORD.flatMap(f=>st.fl[f]||[]);
 const fieldsOf=st=>allRooms(st).filter(r=>r.k!=='halle'||true).reduce((a,r)=>a+(ROOMS[r.k].fl.includes('hof')?0:fpOf(r)[0]*fpOf(r)[1]),0);
 const energyOf=st=>Math.round(fieldsOf(st)*5*(1-.2*mn(cntIn(st,'solar'),3))*(1-.04*mn(cntIn(st,'lager'),3))*(hasT('eff')?.85:1));
@@ -81899,7 +81899,7 @@ const CISF={1:.6,2:1,3:1.7,4:2.6};
 const newCost=c=>Math.round(NEWST*CISF[c]/500)*500;
 const stFixSum=()=>S.stations.slice(1).reduce((a,q)=>a+300*CISF[q.cat||2],0);
 const isWE=()=>{const d=gdate().getDay();return d===0||d===6};
-const kindFor=st=>{const c=(st&&st.cat)||2;return c===4?'b':c===3?(Math.random()<.5?'b':'v'):'v'};
+const kindFor=st=>'b';
 const hireCost=k=>k==='b'?1200:300;
 const wageOf=(q,p)=>(S.bal?S.bal.wage:1)*(140+15*rankIdx(p))*(p.k==='v'?.3:((q.cat===3||q.cat===4)?1.35:1))*(q.shift&&q.cat===4?.85:1);
 const dayFixed=()=>S.stations.reduce((a,q)=>a+q.staff.reduce((b,p)=>b+wageOf(q,p),0),0)*fxWage()+stFixSum()+S.stations.filter(q=>q.jf).length*150;
@@ -81958,7 +81958,7 @@ function dutyOffs0(q){
   else{if(!free){rot(bi,bi.length);rot(vi,hs(q.id))}else{rot(vi,6);rot(bi,hs(q.id+7))}}
   return off}
 const proFree=st=>st.staff.filter(p=>p.k==='b'&&isFree(p)).length;
-const anrueck=st=>{const c=st.cat||2;if(c===4||proFree(st)>=3)return 0;return Math.max(1.2,4-.5*mn(cntIn(st,'sirene'),1)-(S.day-(st.plan??-99)<=2?.3:0))};
+const anrueck=st=>{const c=st.cat||2;if(c===4||proFree(st)>=3)return 0;return Math.max(1.5,4-.5*mn(cntIn(st,'sirene'),1))};
 const dutyTxt=st=>{const hr=rmin()/60,free=(hr>=18||hr<6)||isWE(),on=st.staff.filter(p=>!p.off&&!p.sick),b=on.filter(p=>p.k==='b').length,v=on.length-b;
   return (st.cat===4&&!st.shift)?'rund um die Uhr im Dienst':(free?(isWE()&&hr>=6&&hr<18?'Wochenende':'Abend/Nacht'):'Tagdienst Mo–Fr')+': '+(b?b+' Berufler':'')+(b&&v?' + ':'')+(v?v+' Freiwillige':'')+(on.length?'':'niemand')+' alarmierbar'};
 const whyNot=v=>{if(v.state!=='hall')return v.state==='enroute'?'auf Anfahrt':v.state==='scene'?'im Einsatz':v.state==='logi'?'auf Materialfahrt':'auf Rückfahrt';
@@ -82085,7 +82085,7 @@ function jugHTML(st){const y=st.staff.filter(p=>ageOf(p)<18);if(!y.length)return
 function ageEventsInit(){S.stations.forEach(q=>q.staff.forEach(p=>{p._ag=ageOf(p)}))}
 function repAdd(n,why){const o=S.rep;S.rep=Math.max(0,S.rep+n);const d=S.rep-o;(S.rlog=S.rlog||[]).unshift({d:S.day,t:hhmm(rmin()),n:d,w:why,z:d===0&&n<0});if(S.rlog.length>40)S.rlog.pop();if(n<0)toast('⭐ Ansehen '+n+': '+why)}
 const repTip=()=>('Letzte Änderungen: '+((S.rlog||[]).slice(0,5).map(r=>(r.n>0?'+':'')+r.n+' '+r.w).join(' · ')||'noch keine')).replace(/"/g,"'");
-const mkP=(q,k,age)=>({a0:age==null?22+Math.floor(Math.random()*10):age,d0:(S&&S.day)||1,id:S.uid++,name:FN[Math.floor(Math.random()*FN.length)]+' '+LN[Math.floor(Math.random()*LN.length)],q:{...q},busy:null,tr:null,xp:0,fat:0,mor:70,sick:0,k:k||'v'});
+const mkP=(q,k,age)=>({a0:age==null?22+Math.floor(Math.random()*10):age,d0:(S&&S.day)||1,id:S.uid++,name:FN[Math.floor(Math.random()*FN.length)]+' '+LN[Math.floor(Math.random()*LN.length)],q:{...q},busy:null,tr:null,xp:0,fat:0,mor:70,sick:0,k:'b'});
 const YD=90,ageOf=p=>(p.a0==null?25:p.a0)+Math.floor((((typeof S!=='undefined'&&S&&S.day)||1)-(p.d0||1))/YD);
 const mkQ=l=>{const q={};l.split(' ').filter(Boolean).forEach(k=>q[k]=1);return q};
 const rankXp=p=>RKX.filter(x=>(p.xp||0)>=x).length-1;
@@ -82143,7 +82143,7 @@ function toast(m){if(!SET.toast)return;const t=$('toast');t.textContent=m;t.clas
 function earn(n,why){finSync();S.money+=n;S.stats.earned+=n;fIn(n,/^Tagesziel|^Alle Tagesaufgaben/.test(why)?'Aufgaben & Ziele':'Einsätze');S._lm=S.money;say('+'+fmt(n)+' – '+why,'ok')}
 
 function newStation(fi,free,cat){
-  const f=FIRE[fi];
+  cat=4;const f=FIRE[fi];
   const st={id:S.uid++,fi:f.n,name:f.n,x:f.x,y:f.y,node:nearestNode(f.x,f.y),rl:0,cat:cat||2,
     cond:100,stock:{hose:12,pa:6,verb:30,inf:14,med:16,o2:14,beat:6,elek:6,imm:8,psa:40,dec:12,des:6,schaum:10,bind:24,ger:12,trenn:12,sand:80,csa:8,kl:4,tag:2},tagMiss:0,diesel:0,dirty:{hose:0,pa:0,hyg:0,kl:0},bf:{c0:0,c1:12,r0:0,r1:12},fl:initFl(cat||2),staff:[]};
   S.stations.push(st);
@@ -82532,7 +82532,7 @@ const leaderWork=d=>!alarmOn()&&(!leaderSeen||!!(S.leaderAt&&S.leaderAt.typ===(d
 function leaderGoTo(typ){try{if(cgF&&cgReady){const g=cgF.contentWindow.GAME3D;if(g&&g.leader)return g.leader.go({typ})}}catch(e){}return null}
 function actEffect(d,q){if(!q)return;
   if(d.eff==='prep'||d.chore==='prep'){S.vehicles.forEach(v=>{if(v.st===q.id)v.rdy=S.day});say('✅ '+q.name+': Fahrzeuge geprüft und bereitgestellt.','ok')}
-  else if(d.eff==='plan'){q.plan=S.day;say('📋 Einsatzplanung abgeschlossen: Alarmpläne aktuell, Anrückzeit etwas kürzer (2 Tage).','ok')}
+  else if(d.eff==='plan'){q.plan=S.day;say('📋 Einsatzplanung abgeschlossen: Alarmpläne aktuell, Ausrückzeit 2 Tage lang etwas kürzer.','ok')}
   else if(d.eff==='prev'){q.prev=S.day;say('🧯 Prävention: weniger Einsätze in den nächsten 3 Tagen.','ok')}
   else if(d.eff==='drill'){q.staff.forEach(p=>{p.xp=(p.xp||0)+2});say('🎓 Übung abgeschlossen: Mannschaft etwas erfahrener.','ok')}
 }
@@ -82681,7 +82681,7 @@ function showStart(){
   showModal(`<div class="dlg"><h1>🚨 WACH 112</h1><p>Du leitest eine einzige Feuerwache in Luxemburg. Du startest klein und baust sie mit Geld Schritt für Schritt zur Großwache aus: Räume planen, Fahrzeuge kaufen, Einsätze innerhalb deines Einsatzgebiets disponieren und jeden Tag die Tagesaufgaben erledigen. Die Fahrzeuge fahren auf dem echten Straßennetz den schnellsten Weg.</p>
   <label>Standort deiner Wache (echtes CIS)</label><select id="town">${opts}</select>
   <label>Schwierigkeit</label><select id="dif">${Object.entries(DIFFS).map(([k,x])=>`<option value="${k}" ${k==='normal'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select>
-  <label>Szenario</label><select id="scn">${SCN.map(x=>`<option value="${x.k}" ${x.k==='ausbau'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select><p class="m" style="margin:5px 0 0">Ausbauprojekt und junge Freiwilligenwache starten bewusst ohne volle Mannschaft und ohne fertige Spezialräume. Du baust sie im Spiel Schritt für Schritt auf.</p>
+  <label>Szenario</label><select id="scn">${SCN.map(x=>`<option value="${x.k}" ${x.k==='ausbau'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select><p class="m" style="margin:5px 0 0">Ausbauprojekt und kleine junge Wache starten bewusst ohne volle Mannschaft und ohne fertige Spezialräume. Du baust sie im Spiel Schritt für Schritt auf.</p>
   <button class="btn pri" data-act="begin" style="width:100%;padding:10px">Wache gründen</button></div>`);
 }
 function renderDlg(){
@@ -83061,7 +83061,7 @@ function ausbauHTML(st){
   const rows=T.fls.map(f=>{const have=(st.fl[f]||[]).length,tot=Object.values(T.at).filter(s=>s.fl===f).length;for(const r of st.fl[f]||[])val+=r.inv||ROOMS[r.k].cost;
     return `<div class="row"><span>${FLN[f]}</span><span style="display:flex;gap:8px;align-items:center"><div style="width:90px">${bar(tot?have/tot*100:0,'d')}</div><b>${have}/${tot} Räume</b></span></div>`}).join('');
   const cond=Math.round(st.cond??100),rc=Math.round((100-cond)*70),pen=cond<30?'Ausrückzeit +0,7 min':cond<60?'Ausrückzeit +0,3 min':'keine Einbußen';
-  return `<div class="card" style="margin-top:12px"><h2>Ausbau-Übersicht</h2><div class="row"><span>${CISN[st.cat||2]}</span><b>${T.cnt.halle||0} Garagen${T.cnt.rtwhalle?' · '+T.cnt.rtwhalle+' RTW-Garagen':''}</b></div>${rows}<div class="row"><span>Gebäudewert</span><b>${fmt(val)}</b></div>
+  return `<div class="card" style="margin-top:12px"><h2>Ausbau-Übersicht</h2><div class="row"><span>Deine Wache</span><b>${T.cnt.halle||0} Garagen${T.cnt.rtwhalle?' · '+T.cnt.rtwhalle+' RTW-Garagen':''}</b></div>${rows}<div class="row"><span>Gebäudewert</span><b>${fmt(val)}</b></div>
   <div class="row"><span>Zustand <span class="m">(${pen}; Verschleiß −${wearOf(st).toFixed(1).replace('.',',')} %/Tag)</span></span><span style="display:flex;gap:8px;align-items:center"><div style="width:90px">${bar(cond,cond<30?'bad':'d')}</div><b>${cond} %</b><button class="btn sm" data-act="repair" ${cond>=100||S.money<rc?'disabled':''}>🔧 ${fmt(rc)}</button></span></div>
   <div class="row"><span>Energiekosten</span><b>${fmt(energyOf(st))} / Tag</b></div>${spHTML(st)}
   <div class="hint">Jeder Raum hat in seiner Kategorie einen festen Platz: Garagen, Lager, Atemschutz und Schlauchwäsche im schwarzen Bereich (Einsatz/Schmutz), Aufenthalt, Küche, Schlafen und Büros im weißen Bereich, dazwischen die Umkleide als Schleuse. Werkstatt senkt den Verschleiß, Solaranlage und Lager senken die Energiekosten.</div></div>`}
@@ -83078,7 +83078,7 @@ function expandBf(dir){
 function lvlList(st){return ['ug','eg','og1','og2','og3'].filter(f=>st.fl[f])}
 function ausbauPlan(st,k){
   const d=ROOMS[k],s=freeSlot(st,k);
-  if(!roomMax(st,k))return {cost:d.cost,note:'nicht in Kat. '+(st.cat||2)+' (ab Kat. '+minCat(k)+')',blocked:true};
+  if(!roomMax(st,k))return {cost:d.cost,note:'hier nicht baubar',blocked:true};
   if(!s)return {cost:d.cost,note:'alle Raumplätze belegt',blocked:true};
   return {cost:d.cost,note:s.fl==='hof'?'im Hof':s.fl==='eg'?'':FLN[s.fl]}}
 function autoBuild(k){
@@ -83132,10 +83132,10 @@ function persHTML(st){
     return `<div class="row"><div><b>${p.name}</b> <span class="tag">${ageOf(p)} J.</span> <span class="tag">${RKN[rk]}</span>${crewOk(p)?'':'<span class="tag amb">'+(p.q.san?'noch nicht fahrberechtigt (unter 16)':'SAP 1 fehlt – nicht einsatzfähig')+'</span>'}${rankXp(p)>rk&&rk<3?`<span class="tag amb">Beförderung wartet auf ${PROMO[rk]}</span>`:''} ${p.k==='v'?'<span class="tag">'+JOBN[jobOf(p)]+'</span>':''} ${p.k==='b'?'<span class="tag amb">Berufler</span>':'<span class="tag">Freiwilliger</span>'} ${q}<div class="m">${stt} · Müdigkeit<span class="mini"><i style="width:${Math.round(p.fat||0)}%"></i></span>Moral<span class="mini g"><i style="width:${Math.round(p.mor==null?70:p.mor)}%"></i></span>XP ${p.xp||0}${nx?' / '+nx:''}</div></div><div class="trn">${tr} <button class="btn sm" data-act="fire" data-id="${p.id}" ${p.busy||p.tr?'disabled':''} title="Entlassen">✕</button></div></div>`}).join('');
   const cr=cands.map(c=>{const q=qHi(c.q).map(k=>`<span class="tag ok">${QUAL[k].s}</span>`).join('')||'<span class="tag">ohne Lehrgang</span>';
     const dis=st.staff.length>=pcap(st)||S.money<c.cost;
-    return `<div class="row"><div><b>${c.name}</b> <span class="tag">${c.age||''} J.</span> ${(c.k||(c.jf?'v':kindFor(st)))==='b'?'<span class="tag amb">Berufler</span>':'<span class="tag">Freiwilliger</span>'} ${c.jf?'<span class="tag amb">Jugendfeuerwehr</span>':''} ${q}<div class="m">${c.xp?'Erfahrung '+c.xp+' XP · ':''}${c.jf?'Nachwuchs aus der eigenen Jugendfeuerwehr':'Bewerber'}</div></div><button class="btn sm pri" data-act="cand" data-id="${c.id}" ${dis?'disabled':''}>Einstellen (${c.cost?fmt(c.cost):'kostenlos'})</button></div>`}).join('');
+    return `<div class="row"><div><b>${c.name}</b> <span class="tag">${c.age||''} J.</span> ${'<span class="tag amb">Berufler</span>'} ${c.jf?'<span class="tag amb">Jugendfeuerwehr</span>':''} ${q}<div class="m">${c.xp?'Erfahrung '+c.xp+' XP · ':''}${c.jf?'Nachwuchs aus der eigenen Jugendfeuerwehr':'Bewerber'}</div></div><button class="btn sm pri" data-act="cand" data-id="${c.id}" ${dis?'disabled':''}>Einstellen (${c.cost?fmt(c.cost):'kostenlos'})</button></div>`}).join('');
   const schule=cntIn(st,'schule')>0;
   const P1=`<div class="card"><h2>Dienstbetrieb</h2>
-  <div class="row"><div><b>${CISN[st.cat||2]}</b><div class="m">${CISD[st.cat||2]}</div><div class="m" style="margin-top:3px">Jetzt – ${dutyTxt(st)}. Anrückzeit der Freiwilligen: ${anrueck(st)?anrueck(st).toFixed(1).replace('.',',')+' min':'entfällt'}</div></div></div>${catUp(st)}${moveUI(st)}${st.cat===4?`<div class="row"><div><b>Schichtbetrieb</b> <span class="m">Tag 6–18 Uhr / Nacht 18–6 Uhr, Lohn −15 %, Pausierte erholen sich schneller – aber nur die halbe Mannschaft ist zugleich im Dienst.</span></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`:''}
+  <div class="row"><div><b>Dienstmodell</b><div class="m">Dein Personal ist hauptberuflich. Jetzt – ${dutyTxt(st)}.</div></div></div>${st.cat===4?`<div class="row"><div><b>Schichtbetrieb</b> <span class="m">Tag 6–18 Uhr / Nacht 18–6 Uhr, Lohn −15 %, Pausierte erholen sich schneller – aber nur die halbe Mannschaft ist zugleich im Dienst.</span></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`:''}
   <div class="row"><div><b>Jugendfeuerwehr</b> <span class="m">Alle 8 Tage ein kostenloser Nachwuchs-Bewerber · 150 €/Tag · braucht einen Schulungsraum.</span></div><button class="btn sm ${st.jf?'pri':''}" data-act="jf" ${(schule||st.jf)&&st.cat!==4?'':'disabled'}>${st.jf?'AN':'AUS'}</button></div></div>`;
   const P2=`${jugHTML(st)}<div class="card"><h2>Personal ${st.staff.length} / ${pcap(st)}</h2>${pfBar}${rows||'<div class="empty">Niemand in dieser Gruppe.</div>'}
   ${hireRows(st)}
@@ -83244,7 +83244,7 @@ function showTab(t){
 
 /* ---------- Phase 5a: Wirtschaft & Fortschritt ---------- */
 const DIFFS={leicht:{k:'leicht',n:'Leicht',d:'mehr Startgeld, weniger Einsätze und Krankheit',money:120000,rew:1.1,cost:.85,freq:.85,sick:.6,wage:.9},normal:{k:'normal',n:'Normal',d:'ausgewogen',money:80000,rew:1,cost:1,freq:1,sick:1,wage:1},schwer:{k:'schwer',n:'Realistisch',d:'wenig Geld, mehr Einsätze, mehr Krankheit, höhere Löhne',money:55000,rew:.9,cost:1.15,freq:1.25,sick:1.3,wage:1.15}};
-const SCN=[{k:'ausbau',n:'🏗️ Ausbauprojekt',d:'4 Freiwillige, HLF, wenig Material, +30.000 € Bauhilfe'},{k:'klein',n:'🚒 Junge Freiwilligenwache',d:'4 Freiwillige, ein HLF, +15.000 € Gründerhilfe'},{k:'basis',n:'👥 Eingespielte Basiswache',d:'6 Freiwillige, ein HLF, normale Mittel'},{k:'std',n:'🏢 Voll ausgestattete Wache',d:'voller Personalbestand, ein HLF, normaler Start'},{k:'tut',n:'🎓 Tutorial – geführter Einsatz',d:'ein Einsatz Schritt für Schritt, dann normales Spiel'},{k:'sturm',n:'🌧️ Sturm-Wochenende',d:'voller Start, 3 Tage Dauersturm, viele Einsätze'},{k:'hitze',n:'☀️ Sommerhitze',d:'voller Start, Juli, trocken, mehr Brände'}];
+const SCN=[{k:'ausbau',n:'🏗️ Ausbauprojekt',d:'4 Einsatzkräfte, HLF, wenig Material, +30.000 € Bauhilfe'},{k:'klein',n:'🚒 Kleine junge Wache',d:'4 Einsatzkräfte, ein HLF, +15.000 € Gründerhilfe'},{k:'basis',n:'👥 Eingespielte Basiswache',d:'6 Einsatzkräfte, ein HLF, normale Mittel'},{k:'std',n:'🏢 Voll ausgestattete Wache',d:'voller Personalbestand, ein HLF, normaler Start'},{k:'tut',n:'🎓 Tutorial – geführter Einsatz',d:'ein Einsatz Schritt für Schritt, dann normales Spiel'},{k:'sturm',n:'🌧️ Sturm-Wochenende',d:'voller Start, 3 Tage Dauersturm, viele Einsätze'},{k:'hitze',n:'☀️ Sommerhitze',d:'voller Start, Juli, trocken, mehr Brände'}];
 const TECH={
  funk:{n:'Digitalfunk',i:'📡',cost:8000,days:3,rep:0,d:'Ausrückzeit −0,2 min'},
  train:{n:'Ausbildungskonzept',i:'🎓',cost:6000,days:3,rep:2,d:'Lehrgänge und Übungen 20 % schneller'},
@@ -83280,7 +83280,7 @@ function ensure(){
   S.daily=(S.daily||[]).filter(d=>!['hose','pa','kl'].includes(d.chore));S.stations.forEach(q=>{q.bt=q.bt||[]});
   S.stations.forEach(q=>q.staff.forEach(p=>{if(p.a0==null){p.d0=S.day||1;const o=p.q;p.a0=(o.cs?28:o.fue?26:o.agt?22:20)+Math.floor(Math.random()*6);p.q.san=1;
     if(o.agt||o.fue||o.cs){p.q.fis1=1;p.q.fis2=1}if(o.fue||o.cs){p.q.fis3=1;p.q.agt=1}if(o.mas&&p.a0<21)p.a0=21;if(o.cs&&p.a0<26)p.a0=26}}));
-  if(!S.fups)S.fups=[];if(!S.rlog)S.rlog=[];if(!S.reports)S.reports=[];S.stations.forEach(q=>{if(q.cat==null){q.cat=4;q.staff.forEach(p=>{if(!p.k)p.k='b'})}else q.staff.forEach(p=>{if(!p.k)p.k='v'})});
+  if(!S.fups)S.fups=[];if(!S.rlog)S.rlog=[];if(!S.reports)S.reports=[];S.stations.forEach(q=>{q.cat=4;q.staff.forEach(p=>{p.k='b'})});
   if(!S.fin)S.fin={inc:{},exp:{},hist:[],ci:0,ce:0};
   if(!S.loans)S.loans=[];if(!S.tech)S.tech={};if(S.res===undefined)S.res=null;if(!S.ach)S.ach={};if(!S.evlog)S.evlog=[];
   if(!S.diff)S.diff={k:'normal',rew:1,cost:1,freq:1};if(!S.sc)S.sc='std';
@@ -83608,9 +83608,9 @@ function logiHTML(){
   return `<div class="card"><h2>Materialfahrten</h2>`+trips.map(v=>{const L=v.lg,q=stOf(L.q),sp=stOf(v.st);return `<div class="row"><div>🚐 <b>${call(v)}</b> <span class="m">${sp?sp.name:''} ↔ ${q?q.name:''}</span><div class="m">${L.ph==='out'?'Hinfahrt – holt '+txtItems(L.n)+', bringt '+txtItems(L.d):'Rückfahrt mit '+txtItems(L.n)} · noch ca. ${Math.max(1,Math.ceil(v.eta))} min</div></div></div>`}).join('')+ex.map(e=>{const q=stOf(e.st);return `<div class="row"><div>📦 <b>Dienstleister</b> <span class="m">${q?q.name:''}</span><div class="m">${e.n} ${FLOW[e.k].n} in Reinigung · noch ca. ${Math.max(1,Math.ceil(e.t))} min</div></div></div>`}).join('')+`</div>`}
 function spHTML(st){
   const rows=FLKS.map(k=>{const F=FLOW[k];if(isSP(st))return `<div class="row"><span>${F.ico} ${F.n}</span><b>Stützpunkt (größeres Lager) ✔</b></div>`;if(hasOwn(st,k))return `<div class="row"><span>${F.ico} ${F.n}</span><b>eigene Reinigung ✔</b></div>`;
-    const sp=spFor(st,k);return `<div class="row"><span>${F.ico} ${F.n}</span><span>${sp?'Stützpunkt <b>'+sp.name+'</b> ('+distKm(st,sp).toFixed(1).replace('.',',')+' km, GW ✔)':'<span style="color:var(--amb)">kein Stützpunkt (Kat. 3+ mit GW) – externer Dienstleister, ca. 4 h</span>'}</span></div>`}).join('');
+    const sp=spFor(st,k);return `<div class="row"><span>${F.ico} ${F.n}</span><span>${sp?'Stützpunkt <b>'+sp.name+'</b> ('+distKm(st,sp).toFixed(1).replace('.',',')+' km, GW ✔)':'<span style="color:var(--amb)">kein Stützpunkt (Stützpunkt-Raum mit GW nötig) – externer Dienstleister, ca. 4 h</span>'}</span></div>`}).join('');
   const opts=S.stations.filter(s=>s!==st&&isSP(s)&&gwOf(s).length).map(s=>`<option value="${s.id}" ${st.sp===s.id?'selected':''}>${s.name}</option>`).join('');
-  return `<div class="m" style="margin:8px 0 2px"><b>Materialversorgung</b></div>${rows}${FLKS.some(k=>!hasOwn(st,k))?`<div class="row supply-select"><span>Stützpunkt wählen</span><select id="spsel" style="width:auto;padding:3px 6px"><option value="">Automatisch (nächste)</option>${opts}</select></div><div class="hint">Jede Wache ab Kat. 3 ist automatisch Stützpunkt (größeres Material-Lager) und braucht dafür einen Gerätewagen (GW). Der GW holt das schmutzige Material ab und bringt sofort sauberes aus dem Lager des Stützpunkts mit.</div>`:''}`}
+  return `<div class="m" style="margin:8px 0 2px"><b>Materialversorgung</b></div>${rows}${FLKS.some(k=>!hasOwn(st,k))?`<div class="row supply-select"><span>Stützpunkt wählen</span><select id="spsel" style="width:auto;padding:3px 6px"><option value="">Automatisch (nächste)</option>${opts}</select></div><div class="hint">Deine Wache ist automatisch Stützpunkt (größeres Material-Lager) und braucht dafür einen Gerätewagen (GW). Der GW holt das schmutzige Material ab und bringt sofort sauberes aus dem Lager des Stützpunkts mit.</div>`:''}`}
 const FLOW={
  hose:{ico:'🧼',n:'Schläuche',cap:10,lost:q=>{const lv=cntIn(q,'schlauchwaesche');return lv?.03/(1+.3*lv):.08},stock:'hose',
   steps:[{n:'vom Drecksplatz zur Schlauchwäsche bringen',dur:(q,n)=>3+Math.ceil(n/5)},
