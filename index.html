@@ -82056,10 +82056,10 @@ const vok=v=>v.state==='hall'&&!(v.srv>0)&&(v.cond??100)>=15&&(v.fuel==null||v.f
 const svcCost=v=>Math.round(250+(100-(v.cond??100))*8);
 function newGame(fi,scn,dif,cat){
   scn=scn||'std';const DF=DIFFS[dif]||DIFFS.normal;
-  S={v:6,sc:scn,diff:{k:DF.k,rew:DF.rew,cost:DF.cost,freq:DF.freq},money:DF.money+(scn==='klein'?15000:0),rep:2,day:1,min:7*60,start:Date.now(),weather:'klar',stations:[],vehicles:[],incidents:[],daily:[],today:{done:0,ems:0,fire:0},bonus:false,stats:{done:0,failed:0,earned:0},next:8,uid:1,log:[],radio:[],radioN:0,sel:0};
+  S={v:6,sc:scn,diff:{k:DF.k,rew:DF.rew,cost:DF.cost,freq:DF.freq},money:DF.money+({ausbau:30000,klein:15000,basis:7000}[scn]||0),rep:2,day:1,min:7*60,start:Date.now(),weather:'klar',stations:[],vehicles:[],incidents:[],daily:[],today:{done:0,ems:0,fire:0},bonus:false,stats:{done:0,failed:0,earned:0},next:8,uid:1,log:[],radio:[],radioN:0,sel:0};
   if(scn==='hitze')S.start=new Date(new Date().getFullYear(),6,12).getTime();
   ensure();S.bal={freq:1,sick:DF.sick||1,wage:DF.wage||1};
-  const st=newStation(fi,scn!=='klein',cat||2);S.sel=st.id;
+  const st=newStation(fi,true,cat||2);const startStaff={ausbau:4,klein:4,basis:6}[scn];if(startStaff)st.staff=st.staff.slice(0,startStaff);if(scn==='ausbau'){st.stock.hose=4;st.stock.pa=2;st.stock.psa=12;st.stock.tag=1;st.stock.med=4;st.stock.o2=2}S.sel=st.id;
   addVeh(st,'hlf');
   rollDay(true);weekRoll(false);
   if(scn==='tut'){S.coach=0;tutInc(st)}
@@ -82560,7 +82560,7 @@ function showStart(){
   <label>Standort deiner ersten Wache (echtes CIS)</label><select id="town">${opts}</select>
   <label>Kategorie deiner ersten Wache</label><select id="cat">${[1,2,3,4].map(c=>`<option value="${c}" ${c===2?'selected':''}>${CISN[c]}</option>`).join('')}</select>
   <label>Schwierigkeit</label><select id="dif">${Object.entries(DIFFS).map(([k,x])=>`<option value="${k}" ${k==='normal'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select>
-  <label>Szenario</label><select id="scn">${SCN.map(x=>`<option value="${x.k}">${x.n} – ${x.d}</option>`).join('')}</select>
+  <label>Szenario</label><select id="scn">${SCN.map(x=>`<option value="${x.k}" ${x.k==='ausbau'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select><p class="m" style="margin:5px 0 0">Ausbauprojekt und junge Freiwilligenwache starten bewusst ohne volle Mannschaft und ohne fertige Spezialräume. Du baust sie im Spiel Schritt für Schritt auf.</p>
   <button class="btn pri" data-act="begin" style="width:100%;padding:10px">Wache gründen</button></div>`);
 }
 function renderDlg(){
@@ -83115,7 +83115,7 @@ function showTab(t){
 
 /* ---------- Phase 5a: Wirtschaft & Fortschritt ---------- */
 const DIFFS={leicht:{k:'leicht',n:'Leicht',d:'mehr Startgeld, weniger Einsätze und Krankheit',money:120000,rew:1.1,cost:.85,freq:.85,sick:.6,wage:.9},normal:{k:'normal',n:'Normal',d:'ausgewogen',money:80000,rew:1,cost:1,freq:1,sick:1,wage:1},schwer:{k:'schwer',n:'Realistisch',d:'wenig Geld, mehr Einsätze, mehr Krankheit, höhere Löhne',money:55000,rew:.9,cost:1.15,freq:1.25,sick:1.3,wage:1.15}};
-const SCN=[{k:'std',n:'Standard',d:'Start mit voller Wache'},{k:'tut',n:'Tutorial – geführter Einsatz',d:'ein Einsatz Schritt für Schritt, dann normales Spiel'},{k:'klein',n:'Kleine Startwache',d:'nur 2 Kräfte, +15.000 € Gründerhilfe'},{k:'sturm',n:'Sturm-Wochenende',d:'3 Tage Dauersturm, viele Einsätze'},{k:'hitze',n:'Sommerhitze',d:'Juli, trocken, mehr Brände'}];
+const SCN=[{k:'ausbau',n:'🏗️ Ausbauprojekt',d:'4 Freiwillige, HLF, wenig Material, +30.000 € Bauhilfe'},{k:'klein',n:'🚒 Junge Freiwilligenwache',d:'4 Freiwillige, ein HLF, +15.000 € Gründerhilfe'},{k:'basis',n:'👥 Eingespielte Basiswache',d:'6 Freiwillige, ein HLF, normale Mittel'},{k:'std',n:'🏢 Voll ausgestattete Wache',d:'voller Personalbestand, ein HLF, normaler Start'},{k:'tut',n:'🎓 Tutorial – geführter Einsatz',d:'ein Einsatz Schritt für Schritt, dann normales Spiel'},{k:'sturm',n:'🌧️ Sturm-Wochenende',d:'voller Start, 3 Tage Dauersturm, viele Einsätze'},{k:'hitze',n:'☀️ Sommerhitze',d:'voller Start, Juli, trocken, mehr Brände'}];
 const TECH={
  funk:{n:'Digitalfunk',i:'📡',cost:8000,days:3,rep:0,d:'Ausrückzeit −0,2 min'},
  train:{n:'Ausbildungskonzept',i:'🎓',cost:6000,days:3,rep:2,d:'Lehrgänge und Übungen 20 % schneller'},
@@ -83911,27 +83911,6 @@ if(typeof window!=='undefined')window.__W={newStation,logiTick,spFor,distKm,auto
   window.WACH_V92={version:V92.version,check:readinessCheck,applyMode};
 })();
 })();
-
 </script>
-
-<style id="v91-style">
-/* V91: compact, performance-aware operational interface */
-.v91ops{margin:0 0 12px;border:1px solid #3b4b5b;border-radius:12px;padding:12px;background:linear-gradient(135deg,#17232c,#111820);box-shadow:0 8px 26px rgba(0,0,0,.2)}
-.v91ops-head{display:flex;gap:12px;align-items:center;justify-content:space-between}.v91ops-head b{display:block;font-size:15px}.v91ops-head span,.v91vehicle span,.v91reports span{display:block;color:var(--mut);font-size:12px}.v91bar{height:7px;border-radius:99px;background:#28323d;margin:10px 0;overflow:hidden}.v91bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e6a23c,#3fb97a)}
-.v91twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.v91twocol h3{margin:0 0 5px;font-size:12px;text-transform:uppercase;color:#aebdca}.v91twocol ul{margin:0;padding-left:18px;color:#d4b77a}.v91twocol p{margin:0}.v91ok{color:#78d6a1}.v91reports>div{padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}.v91reports>div:first-child{border-top:0}.v91modes{display:flex;gap:4px}.v91modes button{font:inherit;font-size:11px;padding:4px 7px;border-radius:6px;border:1px solid #405362;background:#121a22;color:#cdd6dd}.v91modes button.on{background:#d6303a;border-color:#d6303a;color:white}.v91vehicle{margin-top:8px;padding:8px;border-radius:8px;background:#101820;border-left:3px solid #4a90e2}
-body[data-v91weather="regen"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(45,80,112,.10)}body[data-v91weather="schnee"] #mapbox{filter:saturate(.78) brightness(1.08)}body[data-v91weather="sturm"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(85,89,110,.13)}
-@media(max-width:760px){.v91twocol{grid-template-columns:1fr}.v91ops-head{align-items:flex-start;flex-direction:column}.v91modes{width:100%}.v91modes button{flex:1}body.v91-mobile #lbl text{display:none}body.v91-mobile #ly_heat{display:none!important}.mapbox{min-height:320px;height:56vh}#p-wachen .wtop{position:static!important;background:none!important}}
-</style>
-
-
-
-<style id="v92-style">
-.v92scene{margin-top:8px;padding:7px 9px;border-radius:8px;border-left:3px solid #e6a23c;background:rgba(230,162,60,.08)}.v92scene b{display:block;font-size:12px}.v92scene span{display:block;color:var(--mut);font-size:12px;margin-top:2px}
-body[data-v92quality="mobil"] #mapbox{contain:layout paint}body[data-v92quality="mobil"] .pulse{animation:none!important}body[data-v92quality="mobil"] .rad{stroke-dasharray:none}body[data-v92quality="mobil"] #dyn .vl{display:none}body[data-v92quality="mobil"] #cg3d{image-rendering:auto}
-body[data-v92quality="hoch"] #p-wachen #w3dslot{box-shadow:0 22px 50px rgba(0,0,0,.42)}
-@media(max-width:760px){.v92scene{font-size:12px}body[data-v92quality="mobil"] #mapbox{height:52vh;min-height:300px}body[data-v92quality="mobil"] .leg{display:none}}
-</style>
-
-
 </body>
 </html>
