@@ -200,6 +200,16 @@ select{width:100%;padding:9px;background:var(--panel2);color:var(--txt);border:1
  body.shell .dclose:hover{color:var(--txt)}
 }
 #cg3d{z-index:8}
+
+/* V90 – operation-centre hierarchy and quiet construction UI */
+body.shell[data-tab=wachen] main>section#p-wachen{width:min(1460px,96vw)}
+#p-wachen .wtop{position:sticky;top:calc(var(--hdr) + 8px);z-index:12;background:linear-gradient(90deg,#111821 82%,transparent);padding:8px 0;margin:-2px 0 8px}
+#p-wachen .scard.on{box-shadow:0 0 0 1px rgba(255,255,255,.2),0 8px 22px rgba(0,0,0,.28)}
+#p-wachen .bau>.card:first-child{background:linear-gradient(145deg,#17212b,#111820);border-color:#374958}
+#p-wachen .bau h2 input{font-size:clamp(18px,2vw,26px)}
+#p-wachen #w3dslot{height:min(72vh,760px);min-height:480px;border:1px solid #526675;box-shadow:0 16px 42px rgba(0,0,0,.34)}
+.duty-start .brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.duty-start .brief-grid>div{padding:10px;border-radius:8px;background:#121b24;border:1px solid #324353}.duty-start .brief-grid span{display:block;color:#aebac4;font-size:12px;margin-top:3px}
+@media(max-width:760px){#p-wachen #w3dslot{height:58vh;min-height:350px}.duty-start .brief-grid{grid-template-columns:1fr}}
 #cg3d{position:fixed;border:0;border-radius:10px;z-index:8;display:none;background:#bfcdd0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
 </style>
 </head>
@@ -82046,7 +82056,7 @@ const vok=v=>v.state==='hall'&&!(v.srv>0)&&(v.cond??100)>=15&&(v.fuel==null||v.f
 const svcCost=v=>Math.round(250+(100-(v.cond??100))*8);
 function newGame(fi,scn,dif,cat){
   scn=scn||'std';const DF=DIFFS[dif]||DIFFS.normal;
-  S={v:5,sc:scn,diff:{k:DF.k,rew:DF.rew,cost:DF.cost,freq:DF.freq},money:DF.money+(scn==='klein'?15000:0),rep:2,day:1,min:7*60,start:Date.now(),weather:'klar',stations:[],vehicles:[],incidents:[],daily:[],today:{done:0,ems:0,fire:0},bonus:false,stats:{done:0,failed:0,earned:0},next:8,uid:1,log:[],radio:[],radioN:0,sel:0};
+  S={v:6,sc:scn,diff:{k:DF.k,rew:DF.rew,cost:DF.cost,freq:DF.freq},money:DF.money+(scn==='klein'?15000:0),rep:2,day:1,min:7*60,start:Date.now(),weather:'klar',stations:[],vehicles:[],incidents:[],daily:[],today:{done:0,ems:0,fire:0},bonus:false,stats:{done:0,failed:0,earned:0},next:8,uid:1,log:[],radio:[],radioN:0,sel:0};
   if(scn==='hitze')S.start=new Date(new Date().getFullYear(),6,12).getTime();
   ensure();S.bal={freq:1,sick:DF.sick||1,wage:DF.wage||1};
   const st=newStation(fi,scn!=='klein',cat||2);S.sel=st.id;
@@ -82541,6 +82551,7 @@ const cache={};
 function setH(id,html){if(cache[id]!==html){cache[id]=html;$(id).innerHTML=html}}
 function showModal(h){const m=$('modal');m.innerHTML=h;m.classList.remove('hidden')}
 function hideModal(){$('modal').classList.add('hidden');$('modal').innerHTML=''}
+function startBriefingHTML(){return `<div class="dlg duty-start"><h1>🏁 Wache bereit</h1><p>Die Spielzeit ist angehalten. Prüfe zuerst deine Wache, Fahrzeugbesetzung und den ersten Ausbau. Erst mit <b>Dienst beginnen</b> können Einsätze eingehen und Fristen ablaufen.</p><div class="brief-grid"><div><b>1 · Wache</b><span>3D-Rundgang und Bauplanung</span></div><div><b>2 · Personal</b><span>Besetzung und Verfügbarkeit</span></div><div><b>3 · Fuhrpark</b><span>Fahrzeug, Wasser und Zustand</span></div></div><button class="btn pri" data-act="dienststart" style="width:100%;padding:11px">▶ Dienst beginnen</button><p class="m" style="margin:9px 0 0">Die Uhr bleibt bis dahin auf Pause. Bei mehreren Wachen wird immer die gerade ausgewählte Wache angezeigt.</p></div>}
 function showStart(){
   startOpen=true;
   const def=Math.max(0,FIRE.findIndex(f=>f.n==='CNIS Luxembourg'));
@@ -82559,7 +82570,8 @@ function renderDlg(){
   [...inc.units.map(veh),...selV].forEach(v=>v&&VT[v.type].caps.forEach(c=>covered.add(c)));
   const need=[...new Set(inc.tasks.filter(t=>t.st!=='done'&&!EXTC[t.cap]).map(t=>t.cap))];
   const hall=S.vehicles.filter(v=>v.state==='hall').map(v=>({v,eta:etaTo(stOf(v.st),inc.loc,v.type)})).sort((a,b)=>a.eta-b.eta);
-  showModal(`<div class="dlg"><h1>${inc.i} ${inc.n}</h1><p>${inc.place}</p>
+  const forecast=hall.length?`<div class="hint"><b>Alarmprognose</b> · Schnellstes verfügbares Fahrzeug: ${Math.round(hall[0].eta)} min Anfahrt · freie Kräfte: ${totalFree()} · Frist ohne alarmiertes Fahrzeug: ${Math.max(0,Math.ceil(inc.wait))} min</div>`:`<div class="hint" style="color:var(--amb)"><b>Alarmprognose</b> · Kein einsatzbereites Fahrzeug verfügbar. Prüfe Besatzung, Wartung und Garagen.</div>`;
+  showModal(`<div class="dlg"><h1>${inc.i} ${inc.n}</h1><p>${inc.place}</p>${forecast}
   <div style="margin-bottom:8px">Benötigt: ${need.map(c=>`<span class="tag ${covered.has(c)?'ok':'amb'}">${covered.has(c)?'✓ ':''}${CAPN[c]}</span>`).join('')}${waterBox(inc,dlg.sel)}</div>
   ${hall.length?hall.map(({v,eta})=>{const T=VT[v.type],on=dlg.sel.includes(v.id),st=stOf(v.st);
     const free=crewAvail(st)-selV.filter(x=>x.st===v.st).reduce((s,x)=>s+VT[x.type].crew,0);
@@ -83054,7 +83066,8 @@ function wachenHTML(){
   const nc=wnew?`<div class="card"><h2>Neue Wache gründen</h2><select id="newcom">${fopts}</select><select id="newcat" style="margin-top:6px">${[1,2,3,4].map(c=>`<option value="${c}" ${c===newCat?'selected':''}>${CISN[c]} – ${fmt(newCost(c))}</option>`).join('')}</select><div class="hint" style="margin:4px 0 8px">${CISD[newCat]}</div><button class="btn pri" data-act="found" style="width:100%" ${S.money<newCost(newCat)?'disabled':''}>Gründen (${fmt(newCost(newCat))} + ${fmt(300*CISF[newCat])}/Tag)</button><div class="hint">Standorte sind die echten CGDIS-Zentren (CIS) aus OpenStreetMap. Jede Wache erzeugt Einsätze in ihrem eigenen Einsatzradius.</div></div>`:'';
   const tabs=[['bau','🏗️ Gebäude'],['pers','👥 Personal'],['fuhr','🚒 Fuhrpark'],['geb','📡 Gebiet']].map(([k,l])=>`<button data-act="wsub" data-t="${k}" class="${wsub===k?'on':''}">${l}</button>`).join('');
   const body=wsub==='bau'?bauHTML(st):wsub==='pers'?persHTML(st):wsub==='fuhr'?fuhrHTML(st):gebHTML(st);
-  return `<div class="stack"><div class="wtop">${chips}</div>${nc}<div class="stabs">${tabs}</div>${body}</div>`;
+  const active=`<div class="hint active-station"><b>Aktive Wache: ${st.name}</b> · Alle 3D-Ansichten, Bauaufträge, Personal- und Fahrzeugaktionen beziehen sich auf diese Wache. Wähle oben eine andere Wache, um ihren Mittelpunkt zu öffnen.</div>`;
+  return `<div class="stack"><div class="wtop">${chips}</div>${active}${nc}<div class="stabs">${tabs}</div>${body}</div>`;
 }
 function hospHTML(){return `<div class="hint" style="margin:0 0 6px"><b>Krankenhäuser</b> – Betten belegt</div>`+hospsOf().map(h=>`<div class="row"><span>🏥 ${h.n}</span><span style="display:flex;gap:8px;align-items:center"><div style="width:80px">${bar(h.pats.length/h.cap*100,h.pats.length>=h.cap?'bad':'d')}</div><b>${h.pats.length}/${h.cap}</b></span></div>`).join('')}
 function funkHTML(){
@@ -83656,7 +83669,8 @@ function act(a,d){
       catch(e){openMenu(e&&e.code==='declined'?'Speichern abgebrochen.':'Download nicht möglich – nutze den Text-Export.')}})();break}
 
     case 'import':try{adopt(JSON.parse($('iport').value));hideModal();showTab('karte');resetView();draw();toast('Spielstand importiert.')}catch(e){openMenu('Import fehlgeschlagen: '+e.message)}break;
-    case 'tut':if(d.i==='end'||+d.i>=TUT.length){hideModal();SET.tut=1;saveSet()}else showModal(tutHTML(+d.i));break;
+    case 'tut':if(d.i==='end'||+d.i>=TUT.length){hideModal();SET.tut=1;speed=1;saveSet();toast('Dienstbetrieb läuft.');}else showModal(tutHTML(+d.i));break;
+    case 'dienststart':hideModal();SET.tut=1;speed=1;saveSet();toast('Dienstbetrieb gestartet.');break;
     case 'loan':{const a=+d.a;if(debt()+a>loanMax()){toast('Kreditrahmen überschritten.');break}S.loans.push({id:S.uid++,p:a,r:.004,t:Math.ceil(a/25)});lend(a);say('Kredit über '+fmt(a)+' aufgenommen (0,4 % Zinsen pro Tag).','ok');sfx('ok');break}
     case 'loanpay':{const l=S.loans.find(x=>x.id===+d.id);if(!l)break;if(S.money<l.p){toast('Nicht genug Geld.');break}pay(l.p);S.loans=S.loans.filter(x=>x!==l);S.stats.loansRepaid=(S.stats.loansRepaid||0)+1;say('Kredit vollständig getilgt.','ok');sfx('ok');break}
     case 'tech':{const T=TECH[d.t];if(!T||S.tech[d.t]||S.res)break;if(S.rep<T.rep||(T.req&&!S.tech[T.req])||S.money<T.cost){toast('Voraussetzungen nicht erfüllt.');break}cost(T.cost,'Forschung');S.res={k:d.t,left:T.days,total:T.days};say('🔬 Forschung gestartet: '+T.n+' ('+T.days+' Tage).');break}
@@ -83731,7 +83745,7 @@ function act(a,d){
     case 'reset':
       if(confirmReset){try{localStorage.removeItem(KEY)}catch(e){}S=null;confirmReset=false;Object.keys(cache).forEach(k=>delete cache[k]);$('dyn').innerHTML='';showStart();return}
       confirmReset=true;setTimeout(()=>{confirmReset=false;draw()},4000);break;
-    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:2;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=1;showTab('karte');resetView();if(!SET.tut&&scn!=='tut')showModal(tutHTML(0));break}
+    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:2;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=0;showTab('wachen');resetView();showModal(startBriefingHTML());break}
   }
   draw();if(S)save();
 }
