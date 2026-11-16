@@ -83865,5 +83865,78 @@ body[data-v91weather="regen"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(45,80,1
 })();
 
 </script>
+
+<style id="v92-style">
+.v92scene{margin-top:8px;padding:7px 9px;border-radius:8px;border-left:3px solid #e6a23c;background:rgba(230,162,60,.08)}.v92scene b{display:block;font-size:12px}.v92scene span{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+body[data-v92quality="mobil"] #mapbox{contain:layout paint}body[data-v92quality="mobil"] .pulse{animation:none!important}body[data-v92quality="mobil"] .rad{stroke-dasharray:none}body[data-v92quality="mobil"] #dyn .vl{display:none}body[data-v92quality="mobil"] #cg3d{image-rendering:auto}
+body[data-v92quality="hoch"] #p-wachen #w3dslot{box-shadow:0 22px 50px rgba(0,0,0,.42)}
+@media(max-width:760px){.v92scene{font-size:12px}body[data-v92quality="mobil"] #mapbox{height:52vh;min-height:300px}body[data-v92quality="mobil"] .leg{display:none}}
+</style>
+
+<script>
+
+/* ===== WACH 112 V92 – Performance, Lagebild und Systemcheck ===== */
+(function(){
+  const V92={version:'92.0',mode:localStorage.getItem('wach112_v91_mode')||'auto',pausedByVisibility:false};
+  function apply3D(mode){
+    try{const w=cgF&&cgF.contentWindow;if(w&&w.WACH_V82&&w.WACH_V82.setGraphics)w.WACH_V82.setGraphics(mode==='mobil'?'mobile':mode==='hoch'?'high':'auto')}catch(e){}
+  }
+  function applyMode(mode){
+    V92.mode=mode;
+    if(typeof mapF!=='undefined'){
+      mapF.names=mode!=='mobil';
+      mapF.heat=mode!=='mobil';
+      if(mode==='mobil')mapF.veh=true;
+    }
+    document.body.dataset.v92quality=mode;
+    apply3D(mode);
+    if(typeof drawMap==='function')drawMap();
+  }
+  function readinessCheck(){
+    const out=[];if(!S)return out;
+    const ids=new Set(),vehIds=new Set();
+    for(const st of S.stations){
+      if(ids.has(st.id))out.push('Doppelte Wachen-ID: '+st.name);ids.add(st.id);
+      const rooms=allRooms(st);for(const r of rooms)if(!ROOMS[r.k])out.push('Unbekannter Raum in '+st.name);
+      for(const v of vOf(st)){if(vehIds.has(v.id))out.push('Doppelte Fahrzeug-ID');vehIds.add(v.id);if(!VT[v.type])out.push('Unbekannter Fahrzeugtyp in '+st.name)}
+      if(!st.staff?.length)out.push(st.name+': kein Personal');
+    }
+    if(!Array.isArray(S.incidents))out.push('Einsatzliste fehlt');
+    return out;
+  }
+  function showCheck(){
+    const issues=readinessCheck(),st=stOf(S.sel)||S.stations[0],r=window.WACH_V91?.readiness(st);
+    const rows=[
+      ['Spielstand',issues.length?'⚠ Prüfung erforderlich':'✓ Struktur in Ordnung'],
+      ['Aktive Wache',st?('✓ '+st.name):'⚠ keine Wache gewählt'],
+      ['Betriebsbereitschaft',r?Math.round(r.score)+' %':'–'],
+      ['Grafikprofil',V92.mode==='mobil'?'Mobil – Details reduziert':V92.mode==='hoch'?'Hoch – volle Darstellung':'Auto – geräteabhängig']
+    ];
+    showModal('<div class="dlg"><h1>🔎 Systemcheck</h1>'+rows.map(x=>'<div class="row"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('')+(issues.length?'<div class="hint" style="color:var(--amb);margin-top:10px">'+issues.join('<br>')+'</div>':'<p class="v91ok" style="margin:12px 0 0">Keine strukturellen Probleme erkannt. Für die vollständige Qualitätsprüfung bleiben längere Spielstände und echte Mobilgeräte wichtig.</p>')+'<button class="btn pri" data-act="mclose" style="width:100%;margin-top:12px">Schließen</button></div>');
+  }
+  const priorWachen=wachenHTML;
+  wachenHTML=function(){
+    const h=priorWachen();
+    return h.replace('</section><div class="stabs">','<button class="btn sm" data-v92check="1" style="margin-top:8px">🔎 Systemcheck dieser Wache</button></section><div class="stabs">');
+  };
+  const priorInc=incCard;
+  incCard=function(inc,full){
+    const h=priorInc(inc,full),units=(inc.units||[]).map(veh).filter(Boolean);
+    const state=units.length?units.some(v=>v.state==='scene')?'Einsatzkräfte arbeiten vor Ort':units.some(v=>v.state==='enroute')?'Fahrzeuge auf dem Straßennetz unterwegs':'Alarmierung vorbereitet':'Noch keine Einheit alarmiert';
+    const weather=(S&&S.weather)||'klar';
+    return h.replace('<div style="margin-top:8px">','<div class="v92scene"><b>📍 Lagebild</b><span>'+state+' · Wetter: '+weather+' · '+(inc.hyd!=null?'Hydrant in '+Math.round(inc.hyd)+' m':'Wasserversorgung wird geprüft')+'</span></div><div style="margin-top:8px">');
+  };
+  window.addEventListener('click',e=>{
+    const mode=e.target.closest&&e.target.closest('[data-v91mode]');if(mode)applyMode(mode.dataset.v91mode);
+    const check=e.target.closest&&e.target.closest('[data-v92check]');if(check){e.preventDefault();e.stopImmediatePropagation();showCheck();}
+  },true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&typeof speed!=='undefined'&&speed>0){speed=0;V92.pausedByVisibility=true;if(typeof draw==='function')draw()}});
+  const oldDraw=draw;
+  draw=function(){oldDraw();apply3D(V92.mode);};
+  applyMode(V92.mode);
+  window.WACH_V92={version:V92.version,check:readinessCheck,applyMode};
+})();
+
+</script>
 </body>
 </html>
