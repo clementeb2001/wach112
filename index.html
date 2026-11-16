@@ -82655,11 +82655,7 @@ function cgBuildDoc(st){
   const lib=document.getElementById('three-lib').textContent,css=document.getElementById('cg-css').textContent,body=document.getElementById('cg-body').textContent,sc=document.getElementById('cg-scene').textContent;
   const smp={st:{name:st.name},vehicles:vOf(st).slice(0,8).map(v=>({type:{lf:'hlf',tlfw:'tlf',nef:'rtw'}[v.type]||(['hlf','tlf','dlk','rtw'].includes(v.type)?v.type:'hlf')}))};
   if(!smp.vehicles.length)smp.vehicles=[{type:'hlf'}];
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style></head><body>'+body+'<script>try{Object.defineProperty(window,"localStorage",{value:{getItem:function(){return null},setItem:function(){}}})}catch(e){}\n'+lib+'\nconst SAMPLE='+JSON.stringify(smp)+';\n'+sc+'<\/script>
-<style id="v91-style">
-.v91ops{margin:0 0 12px;border:1px solid #3b4b5b;border-radius:12px;padding:12px;background:linear-gradient(135deg,#17232c,#111820);box-shadow:0 8px 26px rgba(0,0,0,.2)}.v91ops-head{display:flex;gap:12px;align-items:center;justify-content:space-between}.v91ops-head b{display:block;font-size:15px}.v91ops-head span,.v91vehicle span,.v91reports span{display:block;color:var(--mut);font-size:12px}.v91bar{height:7px;border-radius:99px;background:#28323d;margin:10px 0;overflow:hidden}.v91bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e6a23c,#3fb97a)}.v91twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.v91twocol h3{margin:0 0 5px;font-size:12px;text-transform:uppercase;color:#aebdca}.v91twocol ul{margin:0;padding-left:18px;color:#d4b77a}.v91twocol p{margin:0}.v91ok{color:#78d6a1}.v91reports>div{padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}.v91reports>div:first-child{border-top:0}.v91modes{display:flex;gap:4px}.v91modes button{font:inherit;font-size:11px;padding:4px 7px;border-radius:6px;border:1px solid #405362;background:#121a22;color:#cdd6dd}.v91modes button.on{background:#d6303a;border-color:#d6303a;color:white}.v91vehicle{margin-top:8px;padding:8px;border-radius:8px;background:#101820;border-left:3px solid #4a90e2}.v92scene{margin-top:8px;padding:7px 9px;border-radius:8px;border-left:3px solid #e6a23c;background:rgba(230,162,60,.08)}.v92scene b{display:block;font-size:12px}.v92scene span{display:block;color:var(--mut);font-size:12px;margin-top:2px}body[data-v92quality="mobil"] #mapbox{contain:layout paint}body[data-v92quality="mobil"] .pulse{animation:none!important}body[data-v92quality="mobil"] .rad{stroke-dasharray:none}body[data-v92quality="mobil"] #dyn .vl{display:none}@media(max-width:760px){.v91twocol{grid-template-columns:1fr}.v91ops-head{align-items:flex-start;flex-direction:column}.v91modes{width:100%}.v91modes button{flex:1}body[data-v92quality="mobil"] #lbl text{display:none}body[data-v92quality="mobil"] #ly_heat{display:none!important}.mapbox{min-height:320px;height:56vh}#p-wachen .wtop{position:static!important;background:none!important}}
-</style>
-</body></html>';
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style></head><body>'+body+'<script>try{Object.defineProperty(window,"localStorage",{value:{getItem:function(){return null},setItem:function(){}}})}catch(e){}\n'+lib+'\nconst SAMPLE='+JSON.stringify(smp)+';\n'+sc+'<\/script></body></html>';
 }
 const CG_ROUTE={hose:[[-1,3],[3,3],[3,3],[3,3],[3,16]],pa:[[-1,1],[1,1],[1,1],[1,16]],kl:[[-1,2],[2,2],[2,0]]};
 function cgCart(d,q){if(!cgF||!cgReady||q.id!==S.sel)return;const w=cgF.contentWindow;if(!w||!w.GAME3D||!w.GAME3D.moveCart)return;
@@ -83749,7 +83745,7 @@ function act(a,d){
     case 'reset':
       if(confirmReset){try{localStorage.removeItem(KEY)}catch(e){}S=null;confirmReset=false;Object.keys(cache).forEach(k=>delete cache[k]);$('dyn').innerHTML='';showStart();return}
       confirmReset=true;setTimeout(()=>{confirmReset=false;draw()},4000);break;
-    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:2;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=0;showTab('wachen');resetView();showModal(startBriefingHTML());break}
+    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:2;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=0;showTab('karte');resetView();showTab('wachen');showModal(startBriefingHTML());break}
   }
   draw();if(S)save();
 }
@@ -83794,30 +83790,148 @@ const ready=loadNet().then(()=>{
   scheduleRoads();
 }).catch(e=>{$('load').textContent='Fehler beim Laden: '+e.message;throw e});
 if(typeof window!=='undefined')window.__W={newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
-})();
 
-
-/* V91/V92 integrated operational UI – same lexical scope as the game */
+/* ===== WACH 112 V91 – realistischer Wachbetrieb & mobile Darstellung ===== */
 (function(){
- const VQ={mode:localStorage.getItem('wach112_v91_mode')||'auto',paused:false};
- const clean=n=>Math.max(0,Math.round(n||0));
- const readiness=st=>{const d=st.dirty||{},low=[];if(clean(d.hose))low.push('🧼 '+clean(d.hose)+' Schlauch/Schläuche zur Wäsche');if(clean(d.pa))low.push('😷 '+clean(d.pa)+' Atemschutzgerät(e) prüfen');if(clean(d.kl))low.push('🧥 '+clean(d.kl)+' Nomex-Satz/Sätze zur Wäscherei');if((st.stock?.tag||0)<3)low.push('👕 Tagesuniformen knapp');const service=vOf(st).filter(v=>(v.cond??100)<65||v.srv>0);if(service.length)low.push('🔧 '+service.length+' Fahrzeug(e) mit Wartungsbedarf');return {low,score:Math.max(0,100-low.length*13-service.length*7)}};
- const applyMode=mode=>{VQ.mode=mode;localStorage.setItem('wach112_v91_mode',mode);document.body.dataset.v92quality=mode;if(typeof mapF!=='undefined'){mapF.names=mode!=='mobil';mapF.heat=mode!=='mobil'}try{const w=cgF&&cgF.contentWindow;if(w&&w.WACH_V82&&w.WACH_V82.setGraphics)w.WACH_V82.setGraphics(mode==='mobil'?'mobile':mode==='hoch'?'high':'auto')}catch(e){}};
- const baseWachen=wachenHTML;
- wachenHTML=function(){const html=baseWachen(),st=stOf(S.sel)||S.stations[0];if(!st)return html;const r=readiness(st),status=r.low.length?'<ul>'+r.low.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p class="v91ok">✓ Fahrzeuge, Schutzkleidung und Material sind einsatzbereit.</p>';const reports=(S.v91Reports||[]).filter(x=>x.st===st.id).slice(0,3);const rep=reports.length?'<div class="v91reports">'+reports.map(x=>'<div><b>'+x.icon+' '+x.name+'</b><span>'+x.when+' · '+x.units+' Fahrzeug(e) · '+x.result+'</span></div>').join('')+'</div>':'<p class="m">Noch kein Einsatzbericht für diese Wache.</p>';const panel='<section class="v91ops"><div class="v91ops-head"><div><b>Wachbetrieb · '+st.name+'</b><span>Einsatzbereitschaft '+r.score+' %</span></div><div class="v91modes"><button data-vq="auto" class="'+(VQ.mode==='auto'?'on':'')+'">Auto</button><button data-vq="mobil" class="'+(VQ.mode==='mobil'?'on':'')+'">Mobil</button><button data-vq="hoch" class="'+(VQ.mode==='hoch'?'on':'')+'">Hoch</button></div></div><div class="v91bar"><i style="width:'+r.score+'%"></i></div><div class="v91twocol"><div><h3>Schicht- und Materiallage</h3>'+status+'</div><div><h3>Letzte Einsatznachbereitung</h3>'+rep+'</div></div><button class="btn sm" data-vqcheck="1" style="margin-top:8px">🔎 Systemcheck dieser Wache</button></section>';return html.replace('<div class="stabs">',panel+'<div class="stabs">')};
- const baseDetail=vDetail;
- vDetail=function(st,v){const h=baseDetail(st,v),T=VT[v.type],state=v.state==='hall'?'einsatzbereit in der Halle':v.state==='scene'?'an der Einsatzstelle':v.state==='enroute'?'auf Anfahrt':'auf Rückfahrt',brief='<div class="v91vehicle"><b>Fahrzeugstatus</b><span>'+T.s+' · '+state+' · Besatzung '+(v.crew||[]).length+'/'+(v.sz||T.crew)+' · Zustand '+Math.round(v.cond??100)+' %</span></div>';return h.replace('</div>',brief+'</div>')};
- const baseComplete=complete;
- complete=function(inc){const units=(inc.units||[]).map(veh).filter(Boolean),stations=[...new Set(units.map(v=>v.st))];baseComplete(inc);S.v91Reports=S.v91Reports||[];stations.forEach(id=>S.v91Reports.unshift({st:id,icon:inc.i,name:inc.n,when:hhmm(rmin()),units:units.filter(v=>v.st===id).length,result:'abgeschlossen · Rückkehr, Reinigung und Wiederherstellung laufen'}));S.v91Reports=S.v91Reports.slice(0,36)};
- const baseInc=incCard;
- incCard=function(inc,full){const h=baseInc(inc,full),units=(inc.units||[]).map(veh).filter(Boolean),state=units.length?(units.some(v=>v.state==='scene')?'Einsatzkräfte arbeiten vor Ort':units.some(v=>v.state==='enroute')?'Fahrzeuge auf dem Straßennetz unterwegs':'Alarmierung vorbereitet'):'Noch keine Einheit alarmiert';return h.replace('<div style="margin-top:8px">','<div class="v92scene"><b>📍 Lagebild</b><span>'+state+' · Wetter: '+(S.weather||'klar')+' · '+(inc.hyd!=null?'Hydrant in '+Math.round(inc.hyd)+' m':'Wasserversorgung wird geprüft')+'</span></div><div style="margin-top:8px">')};
- const check=()=>{const out=[];if(!S)return out;const ids=new Set(),vid=new Set();S.stations.forEach(st=>{if(ids.has(st.id))out.push('Doppelte Wachen-ID: '+st.name);ids.add(st.id);allRooms(st).forEach(r=>{if(!ROOMS[r.k])out.push('Unbekannter Raum in '+st.name)});vOf(st).forEach(v=>{if(vid.has(v.id))out.push('Doppelte Fahrzeug-ID');vid.add(v.id);if(!VT[v.type])out.push('Unbekannter Fahrzeugtyp')});if(!st.staff?.length)out.push(st.name+': kein Personal')});return out};
- const openCheck=()=>{const st=stOf(S.sel)||S.stations[0],issues=check(),r=st&&readiness(st),rows=[['Spielstand',issues.length?'⚠ Prüfung erforderlich':'✓ Struktur in Ordnung'],['Aktive Wache',st?'✓ '+st.name:'⚠ keine Wache gewählt'],['Betriebsbereitschaft',r?Math.round(r.score)+' %':'–'],['Grafikprofil',VQ.mode]];showModal('<div class="dlg"><h1>🔎 Systemcheck</h1>'+rows.map(x=>'<div class="row"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('')+(issues.length?'<div class="hint" style="color:var(--amb);margin-top:10px">'+issues.join('<br>')+'</div>':'<p class="v91ok" style="margin:12px 0 0">Keine strukturellen Probleme erkannt.</p>')+'<button class="btn pri" data-act="mclose" style="width:100%;margin-top:12px">Schließen</button></div>')};
- document.addEventListener('click',e=>{const m=e.target.closest&&e.target.closest('[data-vq]');if(m){e.preventDefault();e.stopImmediatePropagation();applyMode(m.dataset.vq);draw();return}const c=e.target.closest&&e.target.closest('[data-vqcheck]');if(c){e.preventDefault();e.stopImmediatePropagation();openCheck()}},true);
- document.addEventListener('visibilitychange',()=>{if(document.hidden&&speed>0){speed=0;VQ.paused=true;draw()}});
- const originalDraw=draw;draw=function(){if(S)document.body.dataset.v91weather=S.weather||'klar';originalDraw();try{const w=cgF&&cgF.contentWindow;if(w&&w.WACH_V82&&w.WACH_V82.setGraphics)w.WACH_V82.setGraphics(VQ.mode==='mobil'?'mobile':VQ.mode==='hoch'?'high':'auto')}catch(e){}};
- applyMode(VQ.mode);window.WACH_V92={version:'92.1',check,applyMode,readiness};
+  const V91={version:'91.0',mode:localStorage.getItem('wach112_v91_mode')||'auto'};
+  const clean=n=>Math.max(0,Math.round(n||0));
+  const readiness=st=>{
+    const d=st.dirty||{}, low=[];
+    if(clean(d.hose)>0)low.push('🧼 '+clean(d.hose)+' Schlauch'+(clean(d.hose)===1?'':'e')+' zur Wäsche');
+    if(clean(d.pa)>0)low.push('😷 '+clean(d.pa)+' Atemschutzgerät'+(clean(d.pa)===1?'':'e')+' prüfen');
+    if(clean(d.kl)>0)low.push('🧥 '+clean(d.kl)+' Nomex-Satz/Sätze zur Wäscherei');
+    if((st.stock?.tag||0)<3)low.push('👕 Tagesuniformen knapp');
+    const vs=vOf(st), service=vs.filter(v=>(v.cond??100)<65||v.srv>0);
+    if(service.length)low.push('🔧 '+service.length+' Fahrzeug'+(service.length===1?'':'e')+' mit Wartungsbedarf');
+    return {low,score:Math.max(0,100-low.length*13-service.length*7)};
+  };
+  function setMode(mode){
+    V91.mode=mode;localStorage.setItem('wach112_v91_mode',mode);
+    document.body.dataset.v91mode=mode;
+    if(mode==='mobil')document.body.classList.add('v91-mobile');else document.body.classList.remove('v91-mobile');
+    toast(mode==='mobil'?'Mobile Sparansicht aktiv – weniger Kartendetails, 3D bleibt auf der ausgewählten Wache.':mode==='auto'?'Grafikprofil automatisch gewählt.':'Hohe Grafikqualität aktiv.');
+  }
+  const oldWachen=wachenHTML;
+  wachenHTML=function(){
+    const html=oldWachen(),st=stOf(S.sel)||S.stations[0];if(!st)return html;
+    const r=readiness(st),status=r.low.length?'<ul>'+r.low.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p class="v91ok">✓ Fahrzeuge, Schutzkleidung und Material sind einsatzbereit.</p>';
+    const report=(S.v91Reports||[]).filter(x=>x.st===st.id).slice(0,3);
+    const reports=report.length?'<div class="v91reports">'+report.map(x=>'<div><b>'+x.icon+' '+x.name+'</b><span>'+x.when+' · '+x.units+' Fahrzeug'+(x.units===1?'':'e')+' · '+x.result+'</span></div>').join('')+'</div>':'<p class="m">Noch kein Einsatzbericht für diese Wache.</p>';
+    const panel='<section class="v91ops"><div class="v91ops-head"><div><b>Wachbetrieb · '+st.name+'</b><span>Einsatzbereitschaft '+r.score+' %</span></div><div class="v91modes"><button data-v91mode="auto" class="'+(V91.mode==='auto'?'on':'')+'">Auto</button><button data-v91mode="mobil" class="'+(V91.mode==='mobil'?'on':'')+'">Mobil</button><button data-v91mode="hoch" class="'+(V91.mode==='hoch'?'on':'')+'">Hoch</button></div></div><div class="v91bar"><i style="width:'+r.score+'%"></i></div><div class="v91twocol"><div><h3>Schicht- und Materiallage</h3>'+status+'</div><div><h3>Letzte Einsatznachbereitung</h3>'+reports+'</div></div></section>';
+    return html.replace('<div class="stabs">',panel+'<div class="stabs">');
+  };
+  const oldDetail=vDetail;
+  vDetail=function(st,v){
+    const h=oldDetail(st,v),T=VT[v.type],crew=(v.crew||[]).length, state=v.state==='hall'?'einsatzbereit in der Halle':v.state==='scene'?'an der Einsatzstelle':v.state==='enroute'?'auf Anfahrt':'auf Rückfahrt';
+    const brief='<div class="v91vehicle"><b>Fahrzeugstatus</b><span>'+T.s+' · '+state+' · Besatzung '+crew+'/'+(v.sz||T.crew)+' · Zustand '+Math.round(v.cond??100)+' %</span></div>';
+    return h.replace('</div>',brief+'</div>');
+  };
+  const oldComplete=complete;
+  complete=function(inc){
+    const units=(inc.units||[]).map(veh).filter(Boolean), stations=[...new Set(units.map(v=>v.st))];
+    oldComplete(inc);
+    S.v91Reports=S.v91Reports||[];
+    for(const id of stations){
+      const st=stOf(id);if(!st)continue;
+      S.v91Reports.unshift({st:id,icon:inc.i,name:inc.n,when:hhmm(rmin()),units:units.filter(v=>v.st===id).length,result:'abgeschlossen · Rückkehr, Reinigung und Wiederherstellung laufen'});
+    }
+    S.v91Reports=S.v91Reports.slice(0,36);
+  };
+  const oldDraw=draw;
+  draw=function(){
+    if(S)document.body.dataset.v91weather=S.weather||'klar';
+    oldDraw();
+  };
+  document.addEventListener('click',e=>{
+    const b=e.target.closest&&e.target.closest('[data-v91mode]');
+    if(!b)return;e.preventDefault();e.stopImmediatePropagation();setMode(b.dataset.v91mode);draw();
+  },true);
+  setMode(V91.mode);
+  window.WACH_V91={readiness,setMode,version:V91.version};
+})();
+/* ===== WACH 112 V92 – Performance, Lagebild und Systemcheck ===== */
+(function(){
+  const V92={version:'92.0',mode:localStorage.getItem('wach112_v91_mode')||'auto',pausedByVisibility:false};
+  function apply3D(mode){
+    try{const w=cgF&&cgF.contentWindow;if(w&&w.WACH_V82&&w.WACH_V82.setGraphics)w.WACH_V82.setGraphics(mode==='mobil'?'mobile':mode==='hoch'?'high':'auto')}catch(e){}
+  }
+  function applyMode(mode){
+    V92.mode=mode;
+    if(typeof mapF!=='undefined'){
+      mapF.names=mode!=='mobil';
+      mapF.heat=mode!=='mobil';
+      if(mode==='mobil')mapF.veh=true;
+    }
+    document.body.dataset.v92quality=mode;
+    apply3D(mode);
+    if(S&&typeof drawMap==='function')drawMap();
+  }
+  function readinessCheck(){
+    const out=[];if(!S)return out;
+    const ids=new Set(),vehIds=new Set();
+    for(const st of S.stations){
+      if(ids.has(st.id))out.push('Doppelte Wachen-ID: '+st.name);ids.add(st.id);
+      const rooms=allRooms(st);for(const r of rooms)if(!ROOMS[r.k])out.push('Unbekannter Raum in '+st.name);
+      for(const v of vOf(st)){if(vehIds.has(v.id))out.push('Doppelte Fahrzeug-ID');vehIds.add(v.id);if(!VT[v.type])out.push('Unbekannter Fahrzeugtyp in '+st.name)}
+      if(!st.staff?.length)out.push(st.name+': kein Personal');
+    }
+    if(!Array.isArray(S.incidents))out.push('Einsatzliste fehlt');
+    return out;
+  }
+  function showCheck(){
+    const issues=readinessCheck(),st=stOf(S.sel)||S.stations[0],r=window.WACH_V91?.readiness(st);
+    const rows=[
+      ['Spielstand',issues.length?'⚠ Prüfung erforderlich':'✓ Struktur in Ordnung'],
+      ['Aktive Wache',st?('✓ '+st.name):'⚠ keine Wache gewählt'],
+      ['Betriebsbereitschaft',r?Math.round(r.score)+' %':'–'],
+      ['Grafikprofil',V92.mode==='mobil'?'Mobil – Details reduziert':V92.mode==='hoch'?'Hoch – volle Darstellung':'Auto – geräteabhängig']
+    ];
+    showModal('<div class="dlg"><h1>🔎 Systemcheck</h1>'+rows.map(x=>'<div class="row"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('')+(issues.length?'<div class="hint" style="color:var(--amb);margin-top:10px">'+issues.join('<br>')+'</div>':'<p class="v91ok" style="margin:12px 0 0">Keine strukturellen Probleme erkannt. Für die vollständige Qualitätsprüfung bleiben längere Spielstände und echte Mobilgeräte wichtig.</p>')+'<button class="btn pri" data-act="mclose" style="width:100%;margin-top:12px">Schließen</button></div>');
+  }
+  const priorWachen=wachenHTML;
+  wachenHTML=function(){
+    const h=priorWachen();
+    return h.replace('</section><div class="stabs">','<button class="btn sm" data-v92check="1" style="margin-top:8px">🔎 Systemcheck dieser Wache</button></section><div class="stabs">');
+  };
+  const priorInc=incCard;
+  incCard=function(inc,full){
+    const h=priorInc(inc,full),units=(inc.units||[]).map(veh).filter(Boolean);
+    const state=units.length?units.some(v=>v.state==='scene')?'Einsatzkräfte arbeiten vor Ort':units.some(v=>v.state==='enroute')?'Fahrzeuge auf dem Straßennetz unterwegs':'Alarmierung vorbereitet':'Noch keine Einheit alarmiert';
+    const weather=(S&&S.weather)||'klar';
+    return h.replace('<div style="margin-top:8px">','<div class="v92scene"><b>📍 Lagebild</b><span>'+state+' · Wetter: '+weather+' · '+(inc.hyd!=null?'Hydrant in '+Math.round(inc.hyd)+' m':'Wasserversorgung wird geprüft')+'</span></div><div style="margin-top:8px">');
+  };
+  window.addEventListener('click',e=>{
+    const mode=e.target.closest&&e.target.closest('[data-v91mode]');if(mode)applyMode(mode.dataset.v91mode);
+    const check=e.target.closest&&e.target.closest('[data-v92check]');if(check){e.preventDefault();e.stopImmediatePropagation();showCheck();}
+  },true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&typeof speed!=='undefined'&&speed>0){speed=0;V92.pausedByVisibility=true;if(typeof draw==='function')draw()}});
+  const oldDraw=draw;
+  draw=function(){oldDraw();apply3D(V92.mode);};
+  applyMode(V92.mode);
+  window.WACH_V92={version:V92.version,check:readinessCheck,applyMode};
+})();
 })();
 
 </script>
 
+<style id="v91-style">
+/* V91: compact, performance-aware operational interface */
+.v91ops{margin:0 0 12px;border:1px solid #3b4b5b;border-radius:12px;padding:12px;background:linear-gradient(135deg,#17232c,#111820);box-shadow:0 8px 26px rgba(0,0,0,.2)}
+.v91ops-head{display:flex;gap:12px;align-items:center;justify-content:space-between}.v91ops-head b{display:block;font-size:15px}.v91ops-head span,.v91vehicle span,.v91reports span{display:block;color:var(--mut);font-size:12px}.v91bar{height:7px;border-radius:99px;background:#28323d;margin:10px 0;overflow:hidden}.v91bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e6a23c,#3fb97a)}
+.v91twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.v91twocol h3{margin:0 0 5px;font-size:12px;text-transform:uppercase;color:#aebdca}.v91twocol ul{margin:0;padding-left:18px;color:#d4b77a}.v91twocol p{margin:0}.v91ok{color:#78d6a1}.v91reports>div{padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}.v91reports>div:first-child{border-top:0}.v91modes{display:flex;gap:4px}.v91modes button{font:inherit;font-size:11px;padding:4px 7px;border-radius:6px;border:1px solid #405362;background:#121a22;color:#cdd6dd}.v91modes button.on{background:#d6303a;border-color:#d6303a;color:white}.v91vehicle{margin-top:8px;padding:8px;border-radius:8px;background:#101820;border-left:3px solid #4a90e2}
+body[data-v91weather="regen"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(45,80,112,.10)}body[data-v91weather="schnee"] #mapbox{filter:saturate(.78) brightness(1.08)}body[data-v91weather="sturm"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(85,89,110,.13)}
+@media(max-width:760px){.v91twocol{grid-template-columns:1fr}.v91ops-head{align-items:flex-start;flex-direction:column}.v91modes{width:100%}.v91modes button{flex:1}body.v91-mobile #lbl text{display:none}body.v91-mobile #ly_heat{display:none!important}.mapbox{min-height:320px;height:56vh}#p-wachen .wtop{position:static!important;background:none!important}}
+</style>
+
+
+
+<style id="v92-style">
+.v92scene{margin-top:8px;padding:7px 9px;border-radius:8px;border-left:3px solid #e6a23c;background:rgba(230,162,60,.08)}.v92scene b{display:block;font-size:12px}.v92scene span{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+body[data-v92quality="mobil"] #mapbox{contain:layout paint}body[data-v92quality="mobil"] .pulse{animation:none!important}body[data-v92quality="mobil"] .rad{stroke-dasharray:none}body[data-v92quality="mobil"] #dyn .vl{display:none}body[data-v92quality="mobil"] #cg3d{image-rendering:auto}
+body[data-v92quality="hoch"] #p-wachen #w3dslot{box-shadow:0 22px 50px rgba(0,0,0,.42)}
+@media(max-width:760px){.v92scene{font-size:12px}body[data-v92quality="mobil"] #mapbox{height:52vh;min-height:300px}body[data-v92quality="mobil"] .leg{display:none}}
+</style>
+
+
+</body>
+</html>
