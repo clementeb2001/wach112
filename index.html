@@ -83793,5 +83793,77 @@ if(typeof window!=='undefined')window.__W={newStation,logiTick,spFor,distKm,auto
 })();
 
 </script>
+
+<style id="v91-style">
+/* V91: compact, performance-aware operational interface */
+.v91ops{margin:0 0 12px;border:1px solid #3b4b5b;border-radius:12px;padding:12px;background:linear-gradient(135deg,#17232c,#111820);box-shadow:0 8px 26px rgba(0,0,0,.2)}
+.v91ops-head{display:flex;gap:12px;align-items:center;justify-content:space-between}.v91ops-head b{display:block;font-size:15px}.v91ops-head span,.v91vehicle span,.v91reports span{display:block;color:var(--mut);font-size:12px}.v91bar{height:7px;border-radius:99px;background:#28323d;margin:10px 0;overflow:hidden}.v91bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e6a23c,#3fb97a)}
+.v91twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.v91twocol h3{margin:0 0 5px;font-size:12px;text-transform:uppercase;color:#aebdca}.v91twocol ul{margin:0;padding-left:18px;color:#d4b77a}.v91twocol p{margin:0}.v91ok{color:#78d6a1}.v91reports>div{padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}.v91reports>div:first-child{border-top:0}.v91modes{display:flex;gap:4px}.v91modes button{font:inherit;font-size:11px;padding:4px 7px;border-radius:6px;border:1px solid #405362;background:#121a22;color:#cdd6dd}.v91modes button.on{background:#d6303a;border-color:#d6303a;color:white}.v91vehicle{margin-top:8px;padding:8px;border-radius:8px;background:#101820;border-left:3px solid #4a90e2}
+body[data-v91weather="regen"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(45,80,112,.10)}body[data-v91weather="schnee"] #mapbox{filter:saturate(.78) brightness(1.08)}body[data-v91weather="sturm"] #mapbox{box-shadow:inset 0 0 0 2000px rgba(85,89,110,.13)}
+@media(max-width:760px){.v91twocol{grid-template-columns:1fr}.v91ops-head{align-items:flex-start;flex-direction:column}.v91modes{width:100%}.v91modes button{flex:1}body.v91-mobile #lbl text{display:none}body.v91-mobile #ly_heat{display:none!important}.mapbox{min-height:320px;height:56vh}#p-wachen .wtop{position:static!important;background:none!important}}
+</style>
+
+<script>
+
+/* ===== WACH 112 V91 – realistischer Wachbetrieb & mobile Darstellung ===== */
+(function(){
+  const V91={version:'91.0',mode:localStorage.getItem('wach112_v91_mode')||'auto'};
+  const clean=n=>Math.max(0,Math.round(n||0));
+  const readiness=st=>{
+    const d=st.dirty||{}, low=[];
+    if(clean(d.hose)>0)low.push('🧼 '+clean(d.hose)+' Schlauch'+(clean(d.hose)===1?'':'e')+' zur Wäsche');
+    if(clean(d.pa)>0)low.push('😷 '+clean(d.pa)+' Atemschutzgerät'+(clean(d.pa)===1?'':'e')+' prüfen');
+    if(clean(d.kl)>0)low.push('🧥 '+clean(d.kl)+' Nomex-Satz/Sätze zur Wäscherei');
+    if((st.stock?.tag||0)<3)low.push('👕 Tagesuniformen knapp');
+    const vs=vOf(st), service=vs.filter(v=>(v.cond??100)<65||v.srv>0);
+    if(service.length)low.push('🔧 '+service.length+' Fahrzeug'+(service.length===1?'':'e')+' mit Wartungsbedarf');
+    return {low,score:Math.max(0,100-low.length*13-service.length*7)};
+  };
+  function setMode(mode){
+    V91.mode=mode;localStorage.setItem('wach112_v91_mode',mode);
+    document.body.dataset.v91mode=mode;
+    if(mode==='mobil')document.body.classList.add('v91-mobile');else document.body.classList.remove('v91-mobile');
+    toast(mode==='mobil'?'Mobile Sparansicht aktiv – weniger Kartendetails, 3D bleibt auf der ausgewählten Wache.':mode==='auto'?'Grafikprofil automatisch gewählt.':'Hohe Grafikqualität aktiv.');
+  }
+  const oldWachen=wachenHTML;
+  wachenHTML=function(){
+    const html=oldWachen(),st=stOf(S.sel)||S.stations[0];if(!st)return html;
+    const r=readiness(st),status=r.low.length?'<ul>'+r.low.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p class="v91ok">✓ Fahrzeuge, Schutzkleidung und Material sind einsatzbereit.</p>';
+    const report=(S.v91Reports||[]).filter(x=>x.st===st.id).slice(0,3);
+    const reports=report.length?'<div class="v91reports">'+report.map(x=>'<div><b>'+x.icon+' '+x.name+'</b><span>'+x.when+' · '+x.units+' Fahrzeug'+(x.units===1?'':'e')+' · '+x.result+'</span></div>').join('')+'</div>':'<p class="m">Noch kein Einsatzbericht für diese Wache.</p>';
+    const panel='<section class="v91ops"><div class="v91ops-head"><div><b>Wachbetrieb · '+st.name+'</b><span>Einsatzbereitschaft '+r.score+' %</span></div><div class="v91modes"><button data-v91mode="auto" class="'+(V91.mode==='auto'?'on':'')+'">Auto</button><button data-v91mode="mobil" class="'+(V91.mode==='mobil'?'on':'')+'">Mobil</button><button data-v91mode="hoch" class="'+(V91.mode==='hoch'?'on':'')+'">Hoch</button></div></div><div class="v91bar"><i style="width:'+r.score+'%"></i></div><div class="v91twocol"><div><h3>Schicht- und Materiallage</h3>'+status+'</div><div><h3>Letzte Einsatznachbereitung</h3>'+reports+'</div></div></section>';
+    return html.replace('<div class="stabs">',panel+'<div class="stabs">');
+  };
+  const oldDetail=vDetail;
+  vDetail=function(st,v){
+    const h=oldDetail(st,v),T=VT[v.type],crew=(v.crew||[]).length, state=v.state==='hall'?'einsatzbereit in der Halle':v.state==='scene'?'an der Einsatzstelle':v.state==='enroute'?'auf Anfahrt':'auf Rückfahrt';
+    const brief='<div class="v91vehicle"><b>Fahrzeugstatus</b><span>'+T.s+' · '+state+' · Besatzung '+crew+'/'+(v.sz||T.crew)+' · Zustand '+Math.round(v.cond??100)+' %</span></div>';
+    return h.replace('</div>',brief+'</div>');
+  };
+  const oldComplete=complete;
+  complete=function(inc){
+    const units=(inc.units||[]).map(veh).filter(Boolean), stations=[...new Set(units.map(v=>v.st))];
+    oldComplete(inc);
+    S.v91Reports=S.v91Reports||[];
+    for(const id of stations){
+      const st=stOf(id);if(!st)continue;
+      S.v91Reports.unshift({st:id,icon:inc.i,name:inc.n,when:hhmm(rmin()),units:units.filter(v=>v.st===id).length,result:'abgeschlossen · Rückkehr, Reinigung und Wiederherstellung laufen'});
+    }
+    S.v91Reports=S.v91Reports.slice(0,36);
+  };
+  const oldDraw=draw;
+  draw=function(){
+    if(S)document.body.dataset.v91weather=S.weather||'klar';
+    oldDraw();
+  };
+  document.addEventListener('click',e=>{
+    const b=e.target.closest&&e.target.closest('[data-v91mode]');
+    if(!b)return;e.preventDefault();e.stopImmediatePropagation();setMode(b.dataset.v91mode);draw();
+  },true);
+  setMode(V91.mode);
+  window.WACH_V91={readiness,setMode,version:V91.version};
+})();
+
+</script>
 </body>
 </html>
