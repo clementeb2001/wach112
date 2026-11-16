@@ -83790,6 +83790,7 @@ const ready=loadNet().then(()=>{
   scheduleRoads();
 }).catch(e=>{$('load').textContent='Fehler beim Laden: '+e.message;throw e});
 if(typeof window!=='undefined')window.__W={newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
+})();
 
 </script>
 </body>
