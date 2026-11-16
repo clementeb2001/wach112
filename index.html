@@ -210,6 +210,15 @@ body.shell[data-tab=wachen] main>section#p-wachen{width:min(1460px,96vw)}
 #p-wachen #w3dslot{height:min(72vh,760px);min-height:480px;border:1px solid #526675;box-shadow:0 16px 42px rgba(0,0,0,.34)}
 .duty-start .brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.duty-start .brief-grid>div{padding:10px;border-radius:8px;background:#121b24;border:1px solid #324353}.duty-start .brief-grid span{display:block;color:#aebac4;font-size:12px;margin-top:3px}
 @media(max-width:760px){#p-wachen #w3dslot{height:58vh;min-height:350px}.duty-start .brief-grid{grid-template-columns:1fr}}
+/* V94 – Ausbau: Gruppen einklappbar, nächste Schritte, 3D höher */
+#p-wachen .catn-t{display:flex;justify-content:space-between;align-items:center;width:100%;margin:8px 0 2px;padding:8px 10px;border:1px solid #2f3e4b;border-radius:8px;background:#141d26;color:var(--txt);font:inherit;font-weight:700;cursor:pointer;text-align:left}
+#p-wachen .catn-t:hover{border-color:#4a6073}
+#p-wachen .nextstep{margin:0 0 8px;padding:9px 10px;border:1px solid #4a6a3f;border-left:3px solid #3fb97a;border-radius:8px;background:rgba(63,185,122,.07)}
+#p-wachen .nextstep>b{display:block;margin-bottom:4px;font-size:12px}
+#p-wachen .nextstep .rrow{border:0;padding:3px 0;margin:0}
+#p-wachen .wtop{margin-bottom:4px}
+#p-wachen #w3dslot{height:min(80vh,860px)}
+@media(max-width:760px){#p-wachen #w3dslot{height:62vh}}
 #cg3d{position:fixed;border:0;border-radius:10px;z-index:8;display:none;background:#bfcdd0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
 /* V93 – Wachenansicht: mobile Bedienbarkeit und robuste Zeilen */
 #p-wachen .active-station{padding:9px 11px;margin:0;border:1px solid #344656;border-left:3px solid var(--red);border-radius:8px;background:#131c25}
@@ -83010,6 +83019,7 @@ function autoBuild(k){
   const s=freeSlot(st,k);const t0=SET.toast;SET.toast=0;const ok=buildAt(st,s.fl,k,s.c,s.r);SET.toast=t0;
   toast(ok?d.n+' wird ausgebaut.':'Kein Platz für '+d.n+'.');
 }
+let auOpen={},auDef=null;
 function bauHTML(st){
   const rowsOf=k=>{const out=[];
     {const d0=ROOMS[k],all=[];for(const f of FLORD)for(const r of st.fl[f]||[])if(r.k===k)all.push({f,r});
@@ -83021,9 +83031,15 @@ function bauHTML(st){
     for(const f of FLORD){for(const r of st.fl[f]||[]){if(r.k!==k)continue;const d=ROOMS[k],lv=r.lv||1,ml=d.ml||3,at=`data-fl="${f}" data-c="${r.c}" data-r="${r.r}"`,val=r.inv||d.cost;
     if(r.bt>0){const rc=Math.ceil(r.bt)*6;out.push(`<div class="rsub"><span>🚧 ${FLN[f]} – fertig in ${Math.ceil(r.bt)} min</span><span><button class="btn sm" data-act="rush" ${at} ${S.money<rc?'disabled':''}>⏩ ${fmt(rc)}</button><button class="btn sm" data-act="demo" ${at} title="Abriss">🧹</button></span></div>`)}
     else{const c=Math.round(d.cost*.7*lv);out.push(`<div class="rsub"><span>✔ ${FLN[f]}${ml>1?' · Stufe '+lv+'/'+ml:''}</span><span>${lv<ml?`<button class="btn sm" data-act="upg" ${at} ${S.money<c?'disabled':''} title="Stufe ${lv+1}: ${EFF[k]?EFF[k](lv+1):''}">⬆ ${fmt(c)}</button>`:(ml>1?'<span class="tag ok">max</span>':'')}<button class="btn sm" data-act="demo" ${at} title="Abriss (+${fmt(Math.round(val/2))})">🧹</button></span></div>`)}}}return out.join('')};
-  const list=Object.keys(CATN).map(g=>{const ents=Object.entries(ROOMS).filter(([k,r])=>r.g===g&&roomMax(st,k)>0);return ents.length?`<div class="catn">${CATN[g]}</div>`+ents.map(([k,r])=>{
+  const gKeys=Object.keys(CATN).filter(g=>Object.entries(ROOMS).some(([k,r])=>r.g===g&&roomMax(st,k)>0)),g0=gKeys[0];auDef=g0;
+  const auOpenG=g=>auOpen[g]===undefined?g===g0:auOpen[g];
+  const NEXT=['umkleide','mannschaft','kueche','wc','werkstatt','atemschutz','schlauchwaesche','lager','schule','schlaf','buero','zentrale','fitness','kleider'];
+  const vFireN=vOf(st).filter(v=>!isRD(v.type)).length;
+  const nextKs=((vFireN>=slots(st)?['halle']:[]).concat(NEXT)).filter(k=>ROOMS[k]&&roomMax(st,k)>0&&cntRooms(st,k)<roomMax(st,k)&&!ausbauPlan(st,k).blocked).slice(0,3);
+  const nextBox=nextKs.length?`<div class="nextstep"><b>➡ Nächste sinnvolle Schritte</b>${nextKs.map(k=>{const r=ROOMS[k],pl=ausbauPlan(st,k);return `<div class="rrow"><div class="rhead"><div><b>${r.i} ${r.n}</b> <span class="tag">${cntRooms(st,k)}/${roomMax(st,k)}</span></div><button class="btn sm ${S.money<pl.cost?'':'pri'}" data-act="ausbau" data-k="${k}" ${S.money<pl.cost?'disabled':''}>🔨 ${fmt(pl.cost)}</button></div></div>`}).join('')}</div>`:'';
+  const list=nextBox+Object.keys(CATN).map(g=>{const ents=Object.entries(ROOMS).filter(([k,r])=>r.g===g&&roomMax(st,k)>0);const built=ents.reduce((a,[k])=>a+cntRooms(st,k),0),tot=ents.reduce((a,[k])=>a+roomMax(st,k),0);return ents.length?`<button class="catn catn-t" data-act="aucat" data-g="${g}"><span>${auOpenG(g)?'▾':'▸'} ${CATN[g]}</span><span class="tag">${built}/${tot}</span></button>`+(auOpenG(g)?ents.map(([k,r])=>{
     const n=cntRooms(st,k),maxed=n>=roomMax(st,k),pl=ausbauPlan(st,k),dis=maxed||pl.blocked||S.money<pl.cost;
-    return `<div class="rrow"><div class="rhead"><div><b>${r.i} ${r.n}</b> <span class="tag">${n}/${roomMax(st,k)}</span><div class="m">${r.d}</div>${!maxed&&pl.note?`<div class="m" style="color:var(--amb)">${pl.note}</div>`:''}</div><button class="btn sm ${dis?'':'pri'}" data-act="ausbau" data-k="${k}" ${dis?'disabled':''}>${maxed?'Voll':'🔨 Ausbauen<br><small>'+fmt(pl.cost)+'</small>'}</button></div>${rowsOf(k)}</div>`}).join(''):''}).join('')+(()=>{const later=Object.keys(ROOMS).filter(k=>!roomMax(st,k)&&minCat(k)).map(k=>ROOMS[k].n+' (ab Kat. '+minCat(k)+')');return later.length?`<div class="hint">In dieser Kategorie nicht möglich: ${later.join(', ')}.</div>`:''})();
+    return `<div class="rrow"><div class="rhead"><div><b>${r.i} ${r.n}</b> <span class="tag">${n}/${roomMax(st,k)}</span><div class="m">${r.d}</div>${!maxed&&pl.note?`<div class="m" style="color:var(--amb)">${pl.note}</div>`:''}</div><button class="btn sm ${dis?'':'pri'}" data-act="ausbau" data-k="${k}" ${dis?'disabled':''}>${maxed?'Voll':'🔨 Ausbauen<br><small>'+fmt(pl.cost)+'</small>'}</button></div>${rowsOf(k)}</div>`}).join(''):''):''}).join('')+(()=>{const later=Object.keys(ROOMS).filter(k=>!roomMax(st,k)&&minCat(k)).map(k=>ROOMS[k].n+' (ab Kat. '+minCat(k)+')');return later.length?`<div class="hint">In dieser Kategorie nicht möglich: ${later.join(', ')}.</div>`:''})();
   return `<div class="bau"><div class="card"><h2><input id="stname" class="stname" value="${st.name.replace(/"/g,'')}" maxlength="28" title="Wache umbenennen"> <span class="m">– Gebäude</span> ${emblemUI(st)}</h2><div class="bwrap"><div id="w3dslot"></div></div><div style="margin-top:8px">${effHTML(st)}</div>${ausbauHTML(st)}</div>
   <div class="card palc"><h2>Ausbau</h2><div class="hint" style="margin:0 0 6px">Ein Klick genügt – der Raum wird automatisch an einem passenden Platz gebaut.</div>${list}</div></div>`;
 }
@@ -83109,7 +83125,7 @@ function wachenHTML(){
   const nc=wnew?`<div class="card"><h2>Neue Wache gründen</h2><select id="newcom">${fopts}</select><select id="newcat" style="margin-top:6px">${[1,2,3,4].map(c=>`<option value="${c}" ${c===newCat?'selected':''}>${CISN[c]} – ${fmt(newCost(c))}</option>`).join('')}</select><div class="hint" style="margin:4px 0 8px">${CISD[newCat]}</div><button class="btn pri" data-act="found" style="width:100%" ${S.money<newCost(newCat)?'disabled':''}>Gründen (${fmt(newCost(newCat))} + ${fmt(300*CISF[newCat])}/Tag)</button><div class="hint">Standorte sind die echten CGDIS-Zentren (CIS) aus OpenStreetMap. Jede Wache erzeugt Einsätze in ihrem eigenen Einsatzradius.</div></div>`:'';
   const tabs=[['bau','🏗️ Gebäude'],['pers','👥 Personal'],['fuhr','🚒 Fuhrpark'],['geb','📡 Gebiet']].map(([k,l])=>`<button data-act="wsub" data-t="${k}" class="${wsub===k?'on':''}">${l}</button>`).join('');
   const body=wsub==='bau'?bauHTML(st):wsub==='pers'?persHTML(st):wsub==='fuhr'?fuhrHTML(st):gebHTML(st);
-  const active=`<div class="hint active-station"><b>Aktive Wache: ${st.name}</b> · Alle 3D-Ansichten, Bauaufträge, Personal- und Fahrzeugaktionen beziehen sich auf diese Wache. Wähle oben eine andere Wache, um ihren Mittelpunkt zu öffnen.</div>`;
+  const active=S.stations.length<2?'':`<div class="hint active-station"><b>Aktive Wache: ${st.name}</b> · alle Aktionen gelten für diese Wache.</div>`;
   return `<div class="stack"><div class="wtop">${chips}</div>${active}${nc}<div class="stabs">${tabs}</div>${body}</div>`;
 }
 function hospHTML(){return `<div class="hint" style="margin:0 0 6px"><b>Krankenhäuser</b> – Betten belegt</div>`+hospsOf().map(h=>`<div class="row"><span>🏥 ${h.n}</span><span style="display:flex;gap:8px;align-items:center"><div style="width:80px">${bar(h.pats.length/h.cap*100,h.pats.length>=h.cap?'bad':'d')}</div><b>${h.pats.length}/${h.cap}</b></span></div>`).join('')}
@@ -83712,6 +83728,7 @@ function act(a,d){
       catch(e){openMenu(e&&e.code==='declined'?'Speichern abgebrochen.':'Download nicht möglich – nutze den Text-Export.')}})();break}
 
     case 'import':try{adopt(JSON.parse($('iport').value));hideModal();showTab('karte');resetView();draw();toast('Spielstand importiert.')}catch(e){openMenu('Import fehlgeschlagen: '+e.message)}break;
+    case 'aucat':{const cur=auOpen[d.g]===undefined?d.g===auDef:auOpen[d.g];auOpen[d.g]=!cur;break}
     case 'tut':if(d.i==='end'||+d.i>=TUT.length){hideModal();SET.tut=1;speed=1;saveSet();toast('Dienstbetrieb läuft.');}else showModal(tutHTML(+d.i));break;
     case 'dienststart':hideModal();SET.tut=1;speed=1;saveSet();toast('Dienstbetrieb gestartet.');break;
     case 'loan':{const a=+d.a;if(debt()+a>loanMax()){toast('Kreditrahmen überschritten.');break}S.loans.push({id:S.uid++,p:a,r:.004,t:Math.ceil(a/25)});lend(a);say('Kredit über '+fmt(a)+' aufgenommen (0,4 % Zinsen pro Tag).','ok');sfx('ok');break}
