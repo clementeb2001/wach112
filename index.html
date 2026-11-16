@@ -82678,9 +82678,8 @@ function showStart(){
   startOpen=true;
   const def=Math.max(0,FIRE.findIndex(f=>f.n==='CNIS Luxembourg'));
   const opts=FIRE.map((f,i)=>`<option value="${i}" ${i===def?'selected':''}>${f.n} (${f.com})</option>`).join('');
-  showModal(`<div class="dlg"><h1>🚨 WACH 112</h1><p>Baue deine eigene Feuerwache in Luxemburg auf: Räume planen, Fahrzeuge kaufen, Einsätze innerhalb deines Einsatzgebiets disponieren und jeden Tag die Tagesaufgaben erledigen. Die Fahrzeuge fahren auf dem echten Straßennetz den schnellsten Weg.</p>
-  <label>Standort deiner ersten Wache (echtes CIS)</label><select id="town">${opts}</select>
-  <label>Kategorie deiner ersten Wache</label><select id="cat">${[1,2,3,4].map(c=>`<option value="${c}" ${c===2?'selected':''}>${CISN[c]}</option>`).join('')}</select>
+  showModal(`<div class="dlg"><h1>🚨 WACH 112</h1><p>Du leitest eine einzige Feuerwache in Luxemburg. Du startest klein und baust sie mit Geld Schritt für Schritt zur Großwache aus: Räume planen, Fahrzeuge kaufen, Einsätze innerhalb deines Einsatzgebiets disponieren und jeden Tag die Tagesaufgaben erledigen. Die Fahrzeuge fahren auf dem echten Straßennetz den schnellsten Weg.</p>
+  <label>Standort deiner Wache (echtes CIS)</label><select id="town">${opts}</select>
   <label>Schwierigkeit</label><select id="dif">${Object.entries(DIFFS).map(([k,x])=>`<option value="${k}" ${k==='normal'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select>
   <label>Szenario</label><select id="scn">${SCN.map(x=>`<option value="${x.k}" ${x.k==='ausbau'?'selected':''}>${x.n} – ${x.d}</option>`).join('')}</select><p class="m" style="margin:5px 0 0">Ausbauprojekt und junge Freiwilligenwache starten bewusst ohne volle Mannschaft und ohne fertige Spezialräume. Du baust sie im Spiel Schritt für Schritt auf.</p>
   <button class="btn pri" data-act="begin" style="width:100%;padding:10px">Wache gründen</button></div>`);
@@ -83878,7 +83877,7 @@ function act(a,d){
     case 'reset':
       if(confirmReset){try{localStorage.removeItem(KEY)}catch(e){}S=null;confirmReset=false;Object.keys(cache).forEach(k=>delete cache[k]);$('dyn').innerHTML='';showStart();return}
       confirmReset=true;setTimeout(()=>{confirmReset=false;draw()},4000);break;
-    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:2;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=0;showTab('karte');resetView();showTab('wachen');showModal(startBriefingHTML());break}
+    case 'begin':{const fi=+$('town').value;const cat0=$('cat')?+$('cat').value:1;const scn=$('scn')?$('scn').value:'std',dif=$('dif')?$('dif').value:'normal';startOpen=false;hideModal();newGame(fi,scn,dif,cat0);speed=0;showTab('karte');resetView();showTab('wachen');showModal(startBriefingHTML());break}
   }
   draw();if(S)save();
 }
