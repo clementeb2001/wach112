@@ -240,6 +240,20 @@ body.shell[data-tab=wachen] main>section#p-wachen{width:min(1460px,96vw)}
 body.shell[data-tab=wachen] #p-wachen .wtop{top:0;background:#111821}
 @media(max-width:1350px){#top .stat.opt{display:none}}
 
+/* V95 – durchgängig bedienbare Wachenansicht auf kleinen Bildschirmen */
+@media(max-width:760px){
+  #p-wachen .wtop{display:grid;grid-template-columns:minmax(0,1fr);overflow:visible;gap:6px;margin:0 0 4px;padding:0}
+  #p-wachen .wtop .scard,#p-wachen .wtop .scard:last-child{width:100%!important;min-width:0!important;flex:none!important;margin:0;text-align:left}
+  #p-wachen .wtop .scard:last-child{text-align:center}
+  #p-wachen .bau>.card{padding:10px}
+  #p-wachen .bau h2{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  #p-wachen .bau h2 .stname{width:min(100%,245px)}
+  #p-wachen .vgrid{grid-template-columns:1fr}
+  #p-wachen .row{gap:7px}
+  #p-wachen .row>div:first-child{min-width:0}
+  #p-wachen .trn{width:100%;justify-content:flex-start;margin-top:3px}
+}
+
 </style>
 </head>
 <body>
