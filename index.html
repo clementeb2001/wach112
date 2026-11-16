@@ -1609,7 +1609,7 @@ function v96Spawn(){
  if(!home||!CIS.nodes.has(home.node))return;
  const p=builderPerson(CIS.group,0,0);p.g.position.copy(CIS.nodes.get(home.node).p);p.g.name='Wachleiter';
  const band=new THREE.Mesh(new THREE.TorusGeometry(.17,.03,6,14),new THREE.MeshBasicMaterial({color:0xffd23a}));band.rotation.x=Math.PI/2;band.position.set(0,1.95,0);p.g.add(band);
- V96.p=p;V96.node=home.node;V96.path=null;V96.target=null;
+ V96.p=p;V96.node=home.node;V96.path=null;V96.target=null;V96.lastTyp=home.typ;try{parent.postMessage({wach112:'leaderArrive',typ:home.typ,n:home.n??0,veh:null,fromGo:false},'*')}catch(e){}
 }
 function v96Describe(t){return t?{typ:t.typ||null,n:t.n??0,veh:t.veh??null,label:t.label||''}:null}
 function v96Go(ref){
@@ -1621,7 +1621,7 @@ function v96Go(ref){
  if(V96.path){let bd=1e9;const pp=V96.p.g.position;for(const [id,nd] of CIS.nodes){const d=nd.p.distanceTo(pp);if(d<bd&&cisRoute(id,node)){bd=d;from=id}}lead=pp.clone();V96.node=from}
  let r=cisRoute(from,node);if(!r||!r.length)return {ok:false,reason:'Kein Weg dorthin.'};
  if(lead)r=[lead,...r];
- V96.path=r;V96.seg=0;V96.pos=0;V96.target=t;V96.dest=node;V96.p.g.position.copy(V96.p.g.position);
+ V96.path=r;V96.seg=0;V96.pos=0;V96.target=t;V96.dest=node;try{parent.postMessage({wach112:'leaderMove'},'*')}catch(e){}V96.p.g.position.copy(V96.p.g.position);
  if(r.length===1)v96Arrive();
  return {ok:true,len:routeLength(r)};
 }
@@ -81805,8 +81805,9 @@ INC.push(
 const OPT={lkw:[[1,.6,'a'],[3,.7,'b'],[4,.4,'c']],ebr:[[2,.5]],bab:[[5,.6],[3,.7]],bra:[[0,.7,'r'],[2,.6,'m'],[3,.6,'m'],[4,.3]],fzg:[[2,.25]],co:[[1,.7,'m'],[2,.7,'m']],kue:[[1,.4]],tuer:[[1,.6]],kau:[[1,.5]],arb:[[1,.85,'m'],[2,.85,'m'],[3,.85,'m']],kam:[[2,.5]],sts:[[0,.5]],ind:[[6,.8,'m'],[7,.8,'m']]};
 const isOpt=(d,i)=>!!(OPT[d.k]&&OPT[d.k].some(o=>o[0]===i));
 const ACT=[
- {n:'Fahrzeug-Check',crew:2,dur:20,rew:400},{n:'Atemschutzübung',crew:3,dur:30,rew:650},{n:'Wache reinigen',crew:1,dur:15,rew:250},
- {n:'Schlauchpflege',crew:2,dur:20,rew:350},{n:'Nachwuchs-Training',crew:2,dur:30,rew:500},{n:'Funkübung mit der Zentrale',crew:1,dur:15,rew:300}
+ {n:'Fahrzeug-Check',crew:0,dur:20,rew:400,eff:'prep'},{n:'Atemschutzübung leiten',crew:0,dur:30,rew:650,eff:'drill'},{n:'Wache reinigen',crew:0,dur:15,rew:250},
+ {n:'Schlauchpflege',crew:0,dur:20,rew:350},{n:'Nachwuchs-Training leiten',crew:0,dur:30,rew:500,eff:'drill'},{n:'Funkübung mit der Zentrale',crew:0,dur:15,rew:300,eff:'drill'},
+ {n:'Einsatzplanung (Dienstplan, Alarmpläne)',crew:0,dur:25,rew:450,eff:'plan'},{n:'Brandschutz-Prävention (Schulen, Betriebe)',crew:0,dur:30,rew:500,eff:'prev'}
 ];
 const GOAL=[
  {n:'2 Einsätze abschließen',g:'done',target:2,rew:700},{n:'3 Einsätze abschließen',g:'done',target:3,rew:1000},
@@ -81957,7 +81958,7 @@ function dutyOffs0(q){
   else{if(!free){rot(bi,bi.length);rot(vi,hs(q.id))}else{rot(vi,6);rot(bi,hs(q.id+7))}}
   return off}
 const proFree=st=>st.staff.filter(p=>p.k==='b'&&isFree(p)).length;
-const anrueck=st=>{const c=st.cat||2;if(c===4||proFree(st)>=3)return 0;return Math.max(1.5,4-.5*mn(cntIn(st,'sirene'),1))};
+const anrueck=st=>{const c=st.cat||2;if(c===4||proFree(st)>=3)return 0;return Math.max(1.2,4-.5*mn(cntIn(st,'sirene'),1)-(S.day-(st.plan??-99)<=2?.3:0))};
 const dutyTxt=st=>{const hr=rmin()/60,free=(hr>=18||hr<6)||isWE(),on=st.staff.filter(p=>!p.off&&!p.sick),b=on.filter(p=>p.k==='b').length,v=on.length-b;
   return (st.cat===4&&!st.shift)?'rund um die Uhr im Dienst':(free?(isWE()&&hr>=6&&hr<18?'Wochenende':'Abend/Nacht'):'Tagdienst Mo–Fr')+': '+(b?b+' Berufler':'')+(b&&v?' + ':'')+(v?v+' Freiwillige':'')+(on.length?'':'niemand')+' alarmierbar'};
 const whyNot=v=>{if(v.state!=='hall')return v.state==='enroute'?'auf Anfahrt':v.state==='scene'?'im Einsatz':v.state==='logi'?'auf Materialfahrt':'auf Rückfahrt';
@@ -82129,7 +82130,7 @@ function taskMult(v,t){
   for(const k of v.eq||[]){const e=EQ[k];if(e&&(e.cap==='all'||e.cap===t.cap))m*=e.m}
   return m}
 const crewAvail=st=>st.staff.filter(p=>!p.tr&&avail(p)&&(!p.busy||p.busy==='act')).length;
-function actPaused(d){const st=stOf(d.st);return !!(d.run&&st&&!(d.pids||[]).every(id=>{const p=st.staff.find(p=>p.id===id);return p&&p.busy==='act'}))}
+function actPaused(d){if(d.crew===0)return !!(d.run&&!leaderWork(d));const st=stOf(d.st);return !!(d.run&&st&&!(d.pids||[]).every(id=>{const p=st.staff.find(p=>p.id===id);return p&&p.busy==='act'}))}
 function pickCrew(st,type,sz,mxo){
   const T=VT[type],R=RL[type],A=st.staff.filter(p=>!p.tr&&avail(p)&&(!p.busy||p.busy==='act'));
   const sol=solveRoles(A,R);if(!sol){const r=[];r.miss=missRoles(A,R);return r}
@@ -82150,7 +82151,7 @@ function newStation(fi,free,cat){
    (free?(c<=2?R8.concat(R8b):c===3?R8.concat(R8b.slice(0,4)):R8):R2).forEach(([l,ag],i)=>{const q=mkQ(l),p=mkP(q,c===4?'b':c===3?(i%2===0?'b':'v'):'v',ag);if(q.cs)p.xp=130;else if(q.fue)p.xp=45;st.staff.push(p)})}
   return st;
 }
-function addVeh(st,type){const no=S.vehicles.filter(v=>v.st===st.id&&v.type===type).length+1;S.vehicles.push({id:S.uid++,st:st.id,type,no,state:'hall',inc:null,busy:null,eta:0,total:0,dly:0,loc:null,crew:[],eq:[],km:0,cond:100,srv:0,fuel:(FUEL[type]||{cap:100}).cap,ld:loadFor(type),dr:{hose:0,pa:0},...tkNew(type)})}
+function addVeh(st,type){const no=S.vehicles.filter(v=>v.st===st.id&&v.type===type).length+1;S.vehicles.push({id:S.uid++,st:st.id,type,no,state:'hall',inc:null,busy:null,eta:0,total:0,dly:0,loc:null,crew:[],eq:[],km:0,cond:100,srv:0,rdy:S.day,fuel:(FUEL[type]||{cap:100}).cap,ld:loadFor(type),dr:{hose:0,pa:0},...tkNew(type)})}
 const vok=v=>v.state==='hall'&&!(v.srv>0)&&(v.cond??100)>=15&&(v.fuel==null||v.fuel>=fcap(v)*.12);
 const svcCost=v=>Math.round(250+(100-(v.cond??100))*8);
 function newGame(fi,scn,dif,cat){
@@ -82176,7 +82177,7 @@ function rollDay(first){rollPers(first);if(!first)huTick();if(!first)vacTick();i
   const acts=shuffle(ACT).slice(0,2).map(a=>({...a,t:'act',run:false,left:0,done:false,st:0}));
   const goals=[];const used={};
   for(const g of shuffle(GOAL)){if(!used[g.g]&&goals.length<2){used[g.g]=1;goals.push({...g,t:'goal',done:false})}}
-  const carry=(S.daily||[]).filter(d=>d.chore&&!d.done).map(d=>({...d,run:false,left:0,pids:[],late:d.chore==='hyg'?(d.late||0)+1:d.late}));S.daily=[...acts,...goals,...carry];
+  const carry=(S.daily||[]).filter(d=>d.chore&&!d.done).map(d=>({...d,run:false,left:0,pids:[],late:d.chore==='hyg'?(d.late||0)+1:d.late}));S.daily=[...acts.map(a=>({...a,crew:0})),...goals,...carry];svcGen();
   if(!first){const wage=Math.round(S.stations.reduce((a,q)=>a+q.staff.reduce((b,p)=>b+wageOf(q,p),0),0)*fxWage()+stFixSum()+S.stations.filter(q=>q.jf).length*150);let en=0;for(const q of S.stations){en+=energyOf(q);q.cond=Math.max(0,(q.cond??100)-wearOf(q))}const dcf=(S.diff||{cost:1}).cost;cost(Math.round(wage*dcf),'Löhne & Unterhalt');cost(Math.round(en*dcf),'Energie');say('Tag '+S.day+': Löhne und Unterhalt '+fmt(wage*dcf)+', Energie '+fmt(en*dcf)+'. Wetter: '+WX[S.weather]+' '+S.weather,'bad')}dayExtra(first);
 }
 
@@ -82306,7 +82307,7 @@ function tick(dt){
       p.fat=Math.max(0,Math.min(100,(p.fat||0)+(p.busy?(p.busy==='act'?.08:.22):-(rb*(p.rest?1.6:1)*((p.off||p.sick)?1.6:1)))*dt));
       if(p.fat>=90)p.rest=true;else if(p.fat<45)p.rest=false;
       const m0=p.mor==null?70:p.mor,tg=mt-Math.max(0,(p.fat||0)-50)*.3-(p.sick?5:0);p.mor=m0+(tg-m0)*.01*dt})}}
-  if(S.next<=0){spawn();stormBurst();S.next=Math.max(40*(1+1.2/Math.max(1,crewedLh())),110-S.rep*3-(S.stations.length-1)*12-5*Math.min(S.vehicles.length,12))*rnd(.7,1.3)*(S.stations.reduce((a,q)=>a+({1:1.8,2:1.4,3:1,4:.8}[q.cat||2]),0)/S.stations.length)/freqF()}
+  if(S.next<=0){spawn();stormBurst();S.next=Math.max(40*(1+1.2/Math.max(1,crewedLh())),110-S.rep*3-(S.stations.length-1)*12-5*Math.min(S.vehicles.length,12))*rnd(.7,1.3)*(S.stations.reduce((a,q)=>a+({1:1.8,2:1.4,3:1,4:.8}[q.cat||2]),0)/S.stations.length)*(S.stations.some(q=>S.day-(q.prev??-99)<=3)?1.12:1)/freqF()}
   for(const v of S.vehicles){
     if(v.state==='enroute'){v.eta-=dt;if(v.eta<=0){v.state='scene';v._r=null;const i=getInc(v.inc);if(i&&i.fa==null){i.fa=i.age||0;const A=S.cA=S.cA||{n:0,sum:0,rec:[]};A.n++;A.sum+=i.fa;A.rec.push(i.fa);if(A.rec.length>20)A.rec.shift()}radio(v,'Status 4 – Einsatzstelle an'+(i?' ('+i.place+')':'')+'.',4);
       if(i){const have=new Set();i.units.map(veh).forEach(u=>u&&VT[u.type].caps.forEach(c=>have.add(c)));
@@ -82330,7 +82331,7 @@ function tick(dt){
   for(const q of S.stations)flowTick(q,dt);
   logiTick(dt);
   for(const d of S.daily){
-    if(d.t==='act'&&d.run){const st=stOf(d.st);const work=st&&(d.pids||[]).every(id=>{const p=st.staff.find(p=>p.id===id);return p&&p.busy==='act'});if(work)d.left-=dt*fxFit(st)*fxTrain(st);if(d.left<=0){d.run=false;d.done=true;if(st)st.staff.forEach(p=>{if(d.pids&&d.pids.includes(p.id)){p.busy=null;p.act=null}});if(d.chore)finishChore(d);else earn(d.rew*fxKue(),d.n)}}
+    if(d.t==='act'&&d.run){const st=stOf(d.st);const work=d.crew===0?leaderWork(d):(st&&(d.pids||[]).every(id=>{const p=st.staff.find(p=>p.id===id);return p&&p.busy==='act'}));if(d.chore==='svc'&&d.run){const sv=veh(d.vid);if(sv)sv.srv=Math.max(sv.srv||0,d.left+3)}if(work)d.left-=dt*(st?fxFit(st)*fxTrain(st):1);if(d.left<=0){d.run=false;d.done=true;if(st)st.staff.forEach(p=>{if(d.pids&&d.pids.includes(p.id)){p.busy=null;p.act=null}});if(d.chore)finishChore(d);else{earn(d.rew*fxKue(),d.n);actEffect(d,st)}}}
     if(d.t==='goal'&&!d.done&&S.today[d.g]>=d.target){d.done=true;earn(d.rew*fxKue(),'Tagesziel: '+d.n)}
   }
   if(!S.bonus&&S.daily.filter(d=>!d.chore).every(d=>d.done)){S.bonus=true;repAdd(1,'Alle Tagesaufgaben erledigt');S.stats.bonus=(S.stats.bonus||0)+1;earn(1000,'Alle Tagesaufgaben erledigt!')}
@@ -82518,13 +82519,33 @@ function taskStart(iid,ti,quiet){
   if(t.tp){const r=pickHosp(inc),tt=Math.max(6,Math.round(r.d*1.35/(55*wm())*60+3+r.delay));t.hosp=r.h.id;t.dur=t.left=tt;r.h.pats.push({left:50+Math.random()*50});radio(c[0],'Transport nach '+r.h.n+' (ca. '+tt+' min)'+(r.why?' – '+r.why:'')+(r.full?' – Haus ausgelastet, Aufnahme verzögert':r.delay>=4?' – längere Übergabe (Auslastung)':'')+'.',4)}
   else radio(c[0],t.n+' begonnen.',4);
 }
+
+/* ---------- V96: Wachleiter-Tätigkeiten (binden kein Personal) ---------- */
+let leaderSeen=false;
+const ROOMOF={hose:'schlauchwaesche',pa:'atemschutz',kl:'kleider',hyg:'halle',stock:'lager',fuel:'halle',svc:'werkstatt',prep:'halle'};
+const ROOMN={halle:'Fahrzeughalle',schlauchwaesche:'Schlauchwäsche',atemschutz:'Atemschutzwerkstatt',kleider:'Kleiderkammer',lager:'Materiallager',werkstatt:'Werkstatt',schule:'Schulungsraum',zentrale:'Wachzentrale',buero:'Büro'};
+function actLoc(d){const q=stOf(d.st)||S.stations[0];let k=d.chore==='fl'?ROOMOF[d.fk]:d.chore?ROOMOF[d.chore]:null;
+  if(!k){const n=d.n||'';k=/Fahrzeug/.test(n)?'halle':/Schlauch/.test(n)?'schlauchwaesche':/Atemschutz|Training|Übung/.test(n)?'schule':/Funk/.test(n)?'zentrale':/Einsatzplanung|Prävention|reinigen/.test(n)?'buero':'halle'}
+  if(k!=='halle'&&q&&!cntIn(q,k))k=(k==='zentrale'&&cntIn(q,'buero'))?'buero':'halle';return k}
+const alarmOn=()=>S.incidents.length>0;
+const leaderWork=d=>!alarmOn()&&(!leaderSeen||!!(S.leaderAt&&S.leaderAt.typ===(d.loc||actLoc(d))));
+function leaderGoTo(typ){try{if(cgF&&cgReady){const g=cgF.contentWindow.GAME3D;if(g&&g.leader)return g.leader.go({typ})}}catch(e){}return null}
+function actEffect(d,q){if(!q)return;
+  if(d.eff==='prep'||d.chore==='prep'){S.vehicles.forEach(v=>{if(v.st===q.id)v.rdy=S.day});say('✅ '+q.name+': Fahrzeuge geprüft und bereitgestellt.','ok')}
+  else if(d.eff==='plan'){q.plan=S.day;say('📋 Einsatzplanung abgeschlossen: Alarmpläne aktuell, Anrückzeit etwas kürzer (2 Tage).','ok')}
+  else if(d.eff==='prev'){q.prev=S.day;say('🧯 Prävention: weniger Einsätze in den nächsten 3 Tagen.','ok')}
+  else if(d.eff==='drill'){q.staff.forEach(p=>{p.xp=(p.xp||0)+2});say('🎓 Übung abgeschlossen: Mannschaft etwas erfahrener.','ok')}
+}
+function svcGen(){const q=S.stations[0];if(!q)return;
+  for(const v of S.vehicles){if(v.st!==q.id||v.dl)continue;if((v.cond??100)<75&&!S.daily.some(d=>d.chore==='svc'&&d.vid===v.id&&!d.done))S.daily.push({t:'act',chore:'svc',vid:v.id,st:q.id,crew:0,dur:Math.round(35+(100-(v.cond??100))*1.2),rew:0,run:false,left:0,done:false,pids:[]})}
+  if(S.vehicles.some(v=>v.st===q.id&&S.day-(v.rdy??S.day)>=1)&&!S.daily.some(d=>d.chore==='prep'&&!d.done))S.daily.push({t:'act',chore:'prep',st:q.id,crew:0,dur:8+5*S.vehicles.filter(v=>v.st===q.id).length,rew:0,run:false,left:0,done:false,pids:[]})}
 function dailyStart(i){
   const d=S.daily[i];if(!d||d.t!=='act'||d.run||d.done)return;
-  if(d.chore)choreCalc(d);
-  const st=d.chore?((stOf(d.st)&&crewFree(stOf(d.st))>=d.crew)?stOf(d.st):null):S.stations.filter(s=>crewFree(s)>=d.crew).sort((a,b)=>crewFree(b)-crewFree(a))[0];
-  if(!st){toast('Zu wenig freie Einsatzkräfte.');return}
+  if(d.chore)choreCalc(d);d.crew=0;
+  const st=stOf(d.st)||S.stations[0];if(!st)return;
   if(d.chore==='fl')try{cgCart(d,st)}catch(e){}
-  d.run=true;d.left=d.dur;d.st=st.id;d.pids=st.staff.filter(isFree).slice(0,d.crew).map(p=>{p.busy='act';p.act=i;return p.id});
+  d.run=true;d.left=d.dur;d.st=st.id;d.pids=[];d.loc=actLoc(d);
+  const r=leaderGoTo(d.loc);toast('Wachleiter: '+(ROOMN[d.loc]||d.loc)+(r&&r.ok&&r.len>0?' – du gehst hin …':''));
 }
 function openDlg(id){dlg={id,sel:[]};renderDlg()}
 function dlgToggle(vid){
@@ -82539,7 +82560,7 @@ function sendVeh(inc,v,quiet){
   const cr=pickCrew(st,v.type,v.sz,v.mxo);if((cr.miss&&cr.miss.length)||cr.length<VT[v.type].crew){if(!quiet)toast((cr.miss&&cr.miss.length)?'Besatzung unvollständig für '+call(v)+' – es fehlt: '+cr.miss.join(', ')+'.':'Zu wenig Besatzung für '+call(v)+': '+crewWhy(st)+'.');return false}
   if(cr.some(p=>p.busy==='act'))say('⏸ Dienstaufgabe pausiert – der Einsatz hat Priorität.','bad');
   cr.forEach(p=>p.busy=v.id);v.crew=cr.map(p=>p.id);v._rp={fuel:0,mat:{},sm:0,dm:0,tg:0,hl:0};
-  let t=ausr(st)+anrueck(st)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
+  let t=ausr(st)+anrueck(st)+((S.day-(v.rdy??S.day))>=2?.6:0)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
   v._ld=0;if(modSlots(v)){const sw=modLoad(st,inc,v);if(sw){v._ld=3*sw;t+=3*sw}}
   v.km=(v.km||0)+R.tm/60*55;useFuel(v,R.tm/60*55);v.cond=Math.max(0,(v.cond??100)-Math.max(.4,2-.5*mn(cntIn(st,'werkstatt'),3)));if(v.cond<40&&!v._wm){v._wm=1;say('🔧 '+call(v)+': Zustand '+Math.round(v.cond)+' % – Wartung einplanen.','bad')}
   if(v.cond<50&&Math.random()<(50-v.cond)/200){t+=10;radio(v,'Status 5 – Panne auf der Anfahrt, ca. 10 min Verzögerung.',5,'bad')}
@@ -83193,11 +83214,11 @@ function aufgHTML(){return `<div class="fgrid"><div class="stack">${aufgHTML0()}
 function aufgHTML0(){
   const acts=S.daily.map((d,i)=>{
     if(d.t==='act'){if(d.chore==='fl'&&d.done)return '';
-      const right=d.done?'<span class="tag ok">✓</span>':d.run?`<div style="width:100px">${bar((1-d.left/d.dur)*100,'d')}</div>`:`<button class="btn sm" data-act="dstart" data-i="${i}" ${(d.chore?crewFree(stOf(d.st)||{staff:[]})<1:S.stations.every(s=>crewFree(s)<d.crew))?'disabled':''}>Start</button>`;
-      return `<div class="row"><div>${d.chore?choreName(d):d.n}<div class="m">${d.chore?choreInfo(d):d.crew+(d.crew===1?' Kraft':' Kräfte')+' · '+d.dur+' min · '+fmt(d.rew*fxKue())}${d.run?' · '+stOf(d.st).name:''}</div></div><div style="display:flex;gap:6px;align-items:center">${d.run&&actPaused(d)?'<span class="tag amb">⏸ Einsatz hat Priorität</span>':''}${right}</div></div>`}
+      const right=d.done?'<span class="tag ok">✓</span>':d.run?`<div style="width:100px">${bar((1-d.left/d.dur)*100,'d')}</div>`:`<button class="btn sm" data-act="dstart" data-i="${i}">Start</button>`;
+      return `<div class="row"><div>${d.chore?choreName(d):d.n}<div class="m">${d.chore?choreInfo(d):'Wachleiter · '+d.dur+' min · '+fmt(d.rew*fxKue())}${' · 📍 '+(ROOMN[d.loc||actLoc(d)]||'')}</div></div><div style="display:flex;gap:6px;align-items:center">${d.run&&actPaused(d)?(alarmOn()?'<span class="tag amb">⏸ Einsatz hat Priorität</span>':`<button class="btn sm" data-act="dgo" data-i="${i}">📍 Hingehen</button>`):''}${right}</div></div>`}
     const p=Math.min(S.today[d.g],d.target);
     return `<div class="row"><div>${d.n}<div class="m">${p} / ${d.target} · ${fmt(d.rew*fxKue())}</div></div>${d.done?'<span class="tag ok">✓</span>':`<span class="tag">${p}/${d.target}</span>`}</div>`}).join('');
-  return `<div class="card"><h2>Tagesaufgaben</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle vier Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Dienstaufgaben binden Einsatzkräfte der Wache.'}</div></div>
+  return `<div class="card"><h2>Tagesaufgaben</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle vier Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Diese Aufgaben erledigst du selbst als Wachleiter im jeweiligen Raum – sie binden kein Personal, laufen nur solange du dort bist und pausieren bei Alarm.'}</div></div>
   ${flowHTML()}${logiHTML()}<div class="card"><h2>Bilanz</h2><div class="row"><span>Einsätze abgeschlossen</span><b>${S.stats.done}</b></div><div class="row"><span>Nicht rechtzeitig besetzt</span><b>${S.stats.failed}</b></div><div class="row"><span>Verdient insgesamt</span><b>${fmt(S.stats.earned)}</b></div><div class="row"><span>Tageskosten (Löhne + Unterhalt)</span><b>${fmt(Math.round(dayFixed()))}</b></div></div>`;
 }
 function draw(){
@@ -83640,22 +83661,22 @@ function dockV(v){
   if(had)radio(v,'Eingerückt: '+(h0?h0+' Schläuche ':'')+(p0?p0+' Atemschutzgeräte ':'')+'zur Reinigung abgelegt.',2);
   if(low.length)say('⚠ '+call(v)+' nicht voll beladen: '+low.join(', ')+'. Lager auffüllen oder Material reinigen!','bad');
 }
-const choreName=d=>{const q=stOf(d.st),n=q?' ('+q.name+')':'';if(d.chore==='fl'){const F=FLOW[d.fk];return F.ico+' '+F.n+': '+F.steps[d.step||0].n+n}return d.chore==='hose'?'🧼 Schläuche reinigen und prüfen'+n:d.chore==='hyg'?'🧽 RTW desinfizieren (Tagesdesinfektion)'+n:d.chore==='stock'?'📦 Materiallager auffüllen'+n:d.chore==='kl'?'🧥 Einsatzuniformen waschen (Nomex)'+n:d.chore==='fuel'?'⛽ Fahrzeuge betanken'+n:'😷 Atemschutzgeräte prüfen und Flaschen füllen'+n};
-function choreCalc(d){const q=stOf(d.st);if(!q)return;if(d.chore==='fl'){d.dur=flowDur(FLOW[d.fk].steps[d.step||0],q,flowN(d,q));d.crew=1;return}const n=q.dirty[d.chore]||0;
+const choreName=d=>{const q=stOf(d.st),n=q?' ('+q.name+')':'';if(d.chore==='svc'){const v=veh(d.vid);return '🔧 Werkstatt: '+(v?call(v):'Fahrzeug')+' warten'}if(d.chore==='prep')return '✅ Fahrzeuge bereitstellen und prüfen'+n;if(d.chore==='fl'){const F=FLOW[d.fk];return F.ico+' '+F.n+': '+F.steps[d.step||0].n+n}return d.chore==='hose'?'🧼 Schläuche reinigen und prüfen'+n:d.chore==='hyg'?'🧽 RTW desinfizieren (Tagesdesinfektion)'+n:d.chore==='stock'?'📦 Materiallager auffüllen'+n:d.chore==='kl'?'🧥 Einsatzuniformen waschen (Nomex)'+n:d.chore==='fuel'?'⛽ Fahrzeuge betanken'+n:'😷 Atemschutzgeräte prüfen und Flaschen füllen'+n};
+function choreCalc(d){const q=stOf(d.st);if(!q)return;if(d.chore==='svc'||d.chore==='prep')return;if(d.chore==='fl'){d.dur=flowDur(FLOW[d.fk].steps[d.step||0],q,flowN(d,q));d.crew=1;return}const n=q.dirty[d.chore]||0;
   if(d.chore==='hyg'){const nr=S.vehicles.filter(v=>v.st===q.id&&v.type==='rtw').length||1;d.dur=Math.max(10,Math.ceil(14*nr/(1+.4*cntIn(q,'rdienst'))));d.crew=nr>2?2:1;return}
   if(d.chore==='stock'){d.dur=Math.max(6,Math.ceil((8+2*lowItems(q).length)/(1+.3*cntIn(q,'rdlager'))));d.crew=1;return}
   if(d.chore==='fuel'){const nv=S.vehicles.filter(v=>v.st===q.id&&v.state==='hall'&&v.fuel!=null&&v.fuel<fcap(v)-1).length||1,tl=cntIn(q,'tank');d.dur=Math.max(6,Math.ceil((5+4*nv)/(1+.4*tl)))*(tl?1:2);d.crew=nv>3?2:1;return}
   if(d.chore==='kl'){const lv=cntIn(q,'kleider');d.dur=Math.max(6,Math.ceil(n*3/(1+.5*lv)))*(lv?1:2.5);d.crew=n>8?2:1;return}
   const lv=d.chore==='hose'?cntIn(q,'schlauchwaesche'):cntIn(q,'atemschutz');
   d.dur=Math.max(5,Math.ceil(n*(d.chore==='hose'?1.2:6)/(1+.6*lv)))*(lv?1:3);d.crew=n>14?2:1}
-const choreInfo=d=>{const q=stOf(d.st);if(!q)return '';if(d.chore==='fl'){const F=FLOW[d.fk];return flowN(d,q)+' '+F.n+' · Rollwagen/Palette für max. '+F.cap+(d.run?'':' · Dauer wird bei Start berechnet')}const n=q.dirty[d.chore]||0;
+const choreInfo=d=>{const q=stOf(d.st);if(!q)return '';if(d.chore==='svc'){const v=veh(d.vid);return 'Zustand '+Math.round(v?v.cond??100:100)+' % · '+d.dur+' min · Fahrzeug ist während der Wartung außer Dienst'}if(d.chore==='prep')return d.dur+' min · ohne Bereitstellung rücken Fahrzeuge später langsamer aus';if(d.chore==='fl'){const F=FLOW[d.fk];return flowN(d,q)+' '+F.n+' · Rollwagen/Palette für max. '+F.cap+(d.run?'':' · Dauer wird bei Start berechnet')}const n=q.dirty[d.chore]||0;
   if(d.chore==='hyg')return 'Einmal pro Tag'+((d.late||0)>0?' · ⚠ '+d.late+' Tag(e) überfällig – der RTW arbeitet langsamer':'')+(d.run?'':' · Dauer wird bei Start berechnet');
   if(d.chore==='fuel'){const vs=S.vehicles.filter(v=>v.st===q.id&&v.fuel!=null&&v.fuel<fcap(v)*.6),tl=cntIn(q,'tank');return vs.length+' Fahrzeug(e) unter 60 % Tank · '+(tl?'eigene Tankstelle ('+Math.round(q.diesel||0).toLocaleString('de-DE')+' L)':'öffentliche Tankstelle: teurer, doppelte Dauer')}
   if(d.chore==='kl')return n+' Sätze warten'+(cntIn(q,'kleider')?'':' · ohne Kleiderkammer 2,5-fache Dauer (Reinigungsfirma)')+(d.run?'':' · wird bei Start berechnet');
   if(d.chore==='stock'){const li=lowItems(q);return li.length+' Posten unter 70 % · Nachbestellung ca. '+fmt(stockCost(q))+(d.run?'':' · Kosten fallen beim Abschluss an')}
   const lv=d.chore==='hose'?cntIn(q,'schlauchwaesche'):cntIn(q,'atemschutz');return n+' Stück warten'+(lv?'':' · ohne '+(d.chore==='hose'?'Schlauchwäsche':'Atemschutzraum')+' dreifache Dauer')+(d.run?'':' · wird bei Start berechnet')};
 function finishChore(d){
-  const q=stOf(d.st);if(!q)return;if(d.chore==='fl'){flowDone(d,q);q.staff.forEach(p=>{if((d.pids||[]).includes(p.id))p.xp=(p.xp||0)+1});return}const n=q.dirty[d.chore]||0;if(q.dirty[d.chore]!==undefined)q.dirty[d.chore]=0;
+  const q=stOf(d.st);if(!q)return;if(d.chore==='svc'){const v=veh(d.vid);if(v){const c=Math.round(250+(100-(v.cond??100))*3);cost(c,'Wartung');v.cond=100;v.srv=0;v._wm=0;say('🔧 '+call(v)+': Wartung in der Werkstatt abgeschlossen ('+fmt(c)+').','ok')}return}if(d.chore==='prep'){actEffect(d,q);return}if(d.chore==='fl'){flowDone(d,q);q.staff.forEach(p=>{if((d.pids||[]).includes(p.id))p.xp=(p.xp||0)+1});return}const n=q.dirty[d.chore]||0;if(q.dirty[d.chore]!==undefined)q.dirty[d.chore]=0;
   if(d.chore==='hose'){const lv=cntIn(q,'schlauchwaesche'),pb=lv?.03/(1+.3*lv):.08;let ok=0;for(let i=0;i<n;i++)if(Math.random()>=pb)ok++;q.stock.hose+=ok;S.stats.hoseLost=(S.stats.hoseLost||0)+(n-ok);
     say('🧼 '+q.name+': '+ok+' Schläuche gewaschen und einsatzbereit'+(n-ok?', '+(n-ok)+' defekt aussortiert':'')+'.','ok')}
   else if(d.chore==='hyg'){const nr=S.vehicles.filter(v=>v.st===q.id&&v.type==='rtw').length||1,use=Math.min(q.stock.des||0,nr);q.stock.des=(q.stock.des||0)-use;say('🧽 '+q.name+': Rettungswagen desinfiziert, Trage und Kabine gereinigt.'+(use<nr?' ⚠ Desinfektionsmittel reichte nicht – nachbestellen!':''),use<nr?'bad':'ok')}
@@ -83849,6 +83870,7 @@ function act(a,d){
     case 'dclose':dlg=null;hideModal();break;
     case 'tstart':taskStart(+d.id,+d.i);break;
     case 'dstart':dailyStart(+d.i);break;
+    case 'dgo':{const x=S.daily[+d.i];if(x)leaderGoTo(x.loc||actLoc(x));break}
     case 'abort':abort(+d.id);break;
     case 'focus':{const i=getInc(+d.id);if(i){showTab('karte');focusOn(i.x,i.y,22)}break}
     case 'zoom':zoomAt(+d.f);return;
@@ -83902,9 +83924,10 @@ const ready=loadNet().then(()=>{
 }).catch(e=>{$('load').textContent='Fehler beim Laden: '+e.message;throw e});
 const LEADER_ACT={halle:'Fahrzeugbereitstellung',lager:'Materiallager',schlauchwaesche:'Schlauchwäsche',kleider:'Kleiderwäsche',werkstatt:'Werkstatt',schule:'Übung',buero:'Einsatzplanung & Prävention',zentrale:'Einsatzplanung',atemschutz:'Atemschutzwerkstatt'};
 window.addEventListener('message',e=>{const d=e.data;if(!d||!d.wach112||!S)return;
-  if(d.wach112==='leaderArrive'){const a=d.veh!=null?'Fahrzeugbereitstellung':(LEADER_ACT[d.typ]||null);S.leaderAt={typ:d.typ,veh:d.veh};toast(a?'Du bist angekommen: '+a:'Du bist angekommen.')}
+  if(d.wach112==='leaderArrive'){leaderSeen=true;const typ=d.veh!=null||d.typ==='rtwhalle'?'halle':d.typ;S.leaderAt={typ};const a=d.veh!=null?'Fahrzeugbereitstellung':(LEADER_ACT[d.typ]||null);const run=(S.daily||[]).find(x=>x.t==='act'&&x.run&&!x.done&&(x.loc||actLoc(x))===typ);if(d.fromGo!==false)toast(run?'Du bist da – Aufgabe läuft: '+(run.chore?choreName(run):run.n):(a?'Du bist angekommen: '+a:'Du bist angekommen.'))}
+  else if(d.wach112==='leaderMove'){leaderSeen=true;S.leaderAt=null}
   else if(d.wach112==='leaderFail')toast(d.reason||'Dorthin kommst du nicht.')});
-if(typeof window!=='undefined')window.__W={pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
+if(typeof window!=='undefined')window.__W={svcGen,leaderWork,actLoc,pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
 })();
 
 </script>
