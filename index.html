@@ -1600,6 +1600,46 @@ const v89TickBase=cisTick;cisTick=function(dt,t){
  v89TickBase(dt,t);
 };
 const v89InspectBase=GAME3D.inspect;GAME3D.inspect=function(){const info=v89InspectBase();if(CIS.active){info.version=89;info.personnel={station:'Tagesuniform ohne Helm',fireAlarm:'Mannschaft läuft zur Umkleide, Nomex, dann Helm, dann Fahrzeug',medical:'Rettungsdienst bleibt in Dienstuniform'};}return info;};
+/* V96 – Wachleiter: spielbare Figur, laeuft ueber das Wegenetz zu Raeumen und Fahrzeugen. */
+const V96={p:null,node:null,path:null,seg:0,pos:0,target:null,speed:3.2,down:null,lastTyp:null};
+function v96Spawn(){
+ if(V96.p){V96.p.g.removeFromParent();V96.p=null;}
+ if(!CIS.active||!CIS.group||!CIS.slots)return;
+ const home=CIS.slots.find(r=>r.status==='done'&&V96.lastTyp&&r.typ===V96.lastTyp)||CIS.slots.find(r=>r.status==='done'&&r.typ==='buero')||CIS.slots.find(r=>r.status==='done'&&r.typ==='zentrale')||CIS.slots.find(r=>r.status==='done'&&r.node&&CIS.nodes.has(r.node));
+ if(!home||!CIS.nodes.has(home.node))return;
+ const p=builderPerson(CIS.group,0,0);p.g.position.copy(CIS.nodes.get(home.node).p);p.g.name='Wachleiter';
+ const band=new THREE.Mesh(new THREE.TorusGeometry(.17,.03,6,14),new THREE.MeshBasicMaterial({color:0xffd23a}));band.rotation.x=Math.PI/2;band.position.set(0,1.95,0);p.g.add(band);
+ V96.p=p;V96.node=home.node;V96.path=null;V96.target=null;
+}
+function v96Describe(t){return t?{typ:t.typ||null,n:t.n??0,veh:t.veh??null,label:t.label||''}:null}
+function v96Go(ref){
+ if(!V96.p||!CIS.active)return {ok:false,reason:'Keine Wache aktiv.'};
+ let node=null,t={};
+ if(ref&&ref.veh!=null){const c=cars[ref.veh];if(!c||!c.slot)return {ok:false,reason:'Fahrzeug nicht erreichbar.'};node=c.slot.node;t={veh:ref.veh,label:'Fahrzeug '+ref.veh};}
+ else{const s=CIS.slots[ref?.index]||CIS.byKey.get((ref?.typ||'')+':'+(ref?.n??0))||CIS.slots.find(r=>r.typ===ref?.typ&&r.status==='done');if(!s||s.status!=='done'||!s.node)return {ok:false,reason:'Raum nicht fertig oder nicht erreichbar.'};node=s.node;t={typ:s.typ,n:s.n,label:s.typ};}
+ let from=V96.node,lead=null;
+ if(V96.path){let bd=1e9;const pp=V96.p.g.position;for(const [id,nd] of CIS.nodes){const d=nd.p.distanceTo(pp);if(d<bd&&cisRoute(id,node)){bd=d;from=id}}lead=pp.clone();V96.node=from}
+ let r=cisRoute(from,node);if(!r||!r.length)return {ok:false,reason:'Kein Weg dorthin.'};
+ if(lead)r=[lead,...r];
+ V96.path=r;V96.seg=0;V96.pos=0;V96.target=t;V96.dest=node;V96.p.g.position.copy(V96.p.g.position);
+ if(r.length===1)v96Arrive();
+ return {ok:true,len:routeLength(r)};
+}
+function v96Arrive(){const t=V96.target;V96.node=V96.dest||V96.node;V96.path=null;V96.target=null;if(t){V96.lastTyp=t.typ||V96.lastTyp;try{parent.postMessage({wach112:'leaderArrive',typ:t.typ||null,n:t.n??0,veh:t.veh??null},'*')}catch(e){}}}
+function v96Tick(dt){
+ const p=V96.p;if(!p||!V96.path)return;let step=V96.speed*Math.min(dt,.3);
+ while(step>0&&V96.path){const a=V96.path[V96.seg],b=V96.path[V96.seg+1];if(!b){v96Arrive();return}const len=a.distanceTo(b)||.001,rest=len-V96.pos;
+  if(step>=rest){step-=rest;V96.seg++;V96.pos=0;p.g.position.copy(b);if(V96.seg>=V96.path.length-1){v96Arrive();return}}
+  else{V96.pos+=step;step=0;p.g.position.lerpVectors(a,b,V96.pos/len);}
+  const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)+Math.abs(dz)>.001)p.g.rotation.y=Math.atan2(dx,dz);}
+ if(p.arm)p.arm.rotation.x=Math.sin(performance.now()/160)*.5;
+}
+const v96BuildBase=cisBuild;cisBuild=function(s){v96BuildBase(s);try{v96Spawn()}catch(e){console.error(e)}};
+const v96TickBase=cisTick;cisTick=function(dt,t){v96TickBase(dt,t);try{v96Tick(dt)}catch(e){console.error(e)}};
+function v96InstallPick(){const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>V96.down=[e.clientX,e.clientY]);canvas.addEventListener('pointerup',e=>{if(!V96.down||Math.hypot(e.clientX-V96.down[0],e.clientY-V96.down[1])>5||!CIS.active)return;const rect=canvas.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);const hit=ray.intersectObjects(V86.proxies,false)[0];if(!hit)return;const d=hit.object.userData;const r=d.v86Type==='vehicle'?v96Go({veh:d.index}):v96Go({index:d.index});if(!r.ok)try{parent.postMessage({wach112:'leaderFail',reason:r.reason},'*')}catch(_){}});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(v96InstallPick,0));else v96InstallPick();
+GAME3D.leader={go:v96Go,state:()=>({node:V96.node,moving:!!V96.path,target:v96Describe(V96.target),pos:V96.p?V96.p.g.position.toArray():null}),spawn:v96Spawn};
+
 </script>
 <script type="text/plain" id="three-lib">
 
@@ -83860,6 +83900,10 @@ const ready=loadNet().then(()=>{
   if(S){const fr=freeFire();newFi=fr.length?fr[0]:0;seenRadio=S.radioN;showTab('karte');resetView();draw()}else{showStart()}
   scheduleRoads();
 }).catch(e=>{$('load').textContent='Fehler beim Laden: '+e.message;throw e});
+const LEADER_ACT={halle:'Fahrzeugbereitstellung',lager:'Materiallager',schlauchwaesche:'Schlauchwäsche',kleider:'Kleiderwäsche',werkstatt:'Werkstatt',schule:'Übung',buero:'Einsatzplanung & Prävention',zentrale:'Einsatzplanung',atemschutz:'Atemschutzwerkstatt'};
+window.addEventListener('message',e=>{const d=e.data;if(!d||!d.wach112||!S)return;
+  if(d.wach112==='leaderArrive'){const a=d.veh!=null?'Fahrzeugbereitstellung':(LEADER_ACT[d.typ]||null);S.leaderAt={typ:d.typ,veh:d.veh};toast(a?'Du bist angekommen: '+a:'Du bist angekommen.')}
+  else if(d.wach112==='leaderFail')toast(d.reason||'Dorthin kommst du nicht.')});
 if(typeof window!=='undefined')window.__W={pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
 })();
 
