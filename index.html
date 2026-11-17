@@ -80987,7 +80987,7 @@ const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.floor(m%6
 const gdate=()=>new Date();
 const rmin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
 const isWinter=()=>[10,11,0,1].includes(gdate().getMonth());
-function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.v===5){o.stations.forEach(q=>{if(q.cond==null)q.cond=100;for(const f of ['og1','og2','og3'])if(!q.fl[f])q.fl[f]=[];if(q.fl.ug&&!q.fl.ug.length)q.fl.ug=null;q.staff.forEach(p=>{if(p.xp==null){p.xp=0;p.fat=0;p.mor=70;p.sick=0}})});return o}}}catch(e){}return null}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.v===5){if(o.stations.length!==1||o.stations[0].cat!==4)return null;o.stations.forEach(q=>{if(q.cond==null)q.cond=100;for(const f of ['og1','og2','og3'])if(!q.fl[f])q.fl[f]=[];if(q.fl.ug&&!q.fl.ug.length)q.fl.ug=null;q.staff.forEach(p=>{if(p.xp==null){p.xp=0;p.fat=0;p.mor=70;p.sick=0}})});return o}}}catch(e){}return null}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S,(k,v)=>k[0]==='_'?undefined:v))}catch(e){}}
 
 /* ---------- Hilfsfunktionen ---------- */
@@ -81043,7 +81043,7 @@ const stFixSum=()=>S.stations.slice(1).reduce((a,q)=>a+300*CISF[q.cat||2],0);
 const isWE=()=>{const d=gdate().getDay();return d===0||d===6};
 const kindFor=st=>'b';
 const hireCost=k=>k==='b'?1200:300;
-const wageOf=(q,p)=>(S.bal?S.bal.wage:1)*(140+15*rankIdx(p))*(p.k==='v'?.3:((q.cat===3||q.cat===4)?1.35:1))*(q.shift&&q.cat===4?.85:1);
+const wageOf=(q,p)=>(S.bal?S.bal.wage:1)*(140+15*rankIdx(p))*(p.k==='v'?.3:((q.cat===3||q.cat===4)?1.35:1))*(shiftOn(q)?.85:1);
 const dayFixed=()=>S.stations.reduce((a,q)=>a+q.staff.reduce((b,p)=>b+wageOf(q,p),0),0)*fxWage()+stFixSum()+S.stations.filter(q=>q.jf).length*150;
 const slotKind=()=>{const hr=rmin()/60;return (hr>=18||hr<6||isWE())?'n':'d'};
 const planOn=(q,v,sk)=>{const p=q.plan&&q.plan[sk];return !p||p[v.id]!==false};
@@ -81059,7 +81059,13 @@ function planCheck(q,sk){
     bad.push({v,txt:ms.length?ms.join(', '):'Rollen nicht aufteilbar'})}
   return {total:vs.length,ok:vs.length-bad.length,bad}}
 function stRoles(q){const o=['hlf','lf','tlf','gwg','wr','dlk','rtw','gw','elw'],t=o.find(t=>S.vehicles.some(v=>v.st===q.id&&v.type===t));return t?RL[t]:null}
+const SGN=['A','B','C','D'];
+const groupNeed=q=>Math.max(4,S.vehicles.filter(v=>v.st===q.id&&RL[v.type]).reduce((a,v)=>a+staffCap(v),0));
+const shiftOn=q=>!!(q&&q.shift&&q.staff.length>=4*groupNeed(q));
+function grpFix(q){const c=[0,0,0,0];q.staff.forEach(p=>{if(p.grp>=0&&p.grp<4)c[p.grp]++});q.staff.forEach(p=>{if(!(p.grp>=0&&p.grp<4)){let m=0;for(let g=1;g<4;g++)if(c[g]<c[m])m=g;p.grp=m;c[m]++}});return c}
+const shiftGrp=()=>{const h=S.day*24+rmin()/60;return(((Math.floor((h-6)/12))%4)+4)%4};
 function fixRoles(q,off){
+  if(shiftOn(q))return off;
   const sk=slotKind();if((q.cat||2)===1&&sk==='d')return off;
   const pv=S.vehicles.filter(v=>v.st===q.id&&RL[v.type]&&v.state==='hall'&&planOn(q,v,sk)),vt=pv.map(v=>v.type);if(!vt.length)return off;
   const fr=p=>!(p.busy&&p.busy!=='act');
@@ -81074,7 +81080,7 @@ function fixRoles(q,off){
     if(!want)want=p=>miss.some(r=>RP[r](p));
     const c=idx((p,i)=>off[i]&&!p.sick&&!p.rest&&!p.tr&&!(p.vac>0)&&fr(p)&&crewOk(p)&&want(p))[0];if(c==null)break;off[c]=false}
   // Abend/Nacht/Wochenende: volle Besatzung der eingeteilten Fahrzeuge
-  if(sk==='n'&&!(q.cat===4&&q.shift)){
+  if(sk==='n'&&!(q.cat===4&&shiftOn(q))){
     const tgt=pv.reduce((a,v)=>a+staffCap(v),0),hb=Math.floor(rmin()/60)+S.day*24,n=q.staff.length;let on=onI().length;
     for(let k=0;k<n&&on<tgt;k++){const i=(k+hb)%n,p=q.staff[i];if(off[i]&&!p.sick&&!p.rest&&!p.tr&&!(p.vac>0)&&fr(p)&&crewOk(p)){off[i]=false;on++}}}
   return off}
@@ -81088,7 +81094,7 @@ function slotNow(){const hr=rmin()/60;if(hr>=23||hr<6)return 3;if(isWE())return 
 function dutyOffs0(q){
   const hr=rmin()/60,night=hr>=18||hr<6,free=night||isWE(),cat=q.cat||2,n=q.staff.length;
   const off=new Array(n).fill(false);
-  if(cat===4){q.staff.forEach((p,i)=>{off[i]=q.shift?!((i%2)?night:!night):false});return off}
+  if(cat===4){if(shiftOn(q)){grpFix(q);const g=shiftGrp();q.staff.forEach((p,i)=>{off[i]=p.grp!==g})}return off}
   const vi=[],bi=[];q.staff.forEach((p,i)=>(p.k==='b'?bi:vi).push(i));
   const hb=Math.floor(hr)+S.day*24,hs=a=>((hb*2654435761+a*40503)>>>0)%4+1;
   const rot=(arr,cap)=>{const m=Math.max(arr.length,1);arr.forEach((i,j)=>{off[i]=!(((j+hb)%m)<cap)})};
@@ -81102,6 +81108,7 @@ function dutyOffs0(q){
 const proFree=st=>st.staff.filter(p=>p.k==='b'&&isFree(p)).length;
 const anrueck=st=>{const c=st.cat||2;if(c===4||proFree(st)>=3)return 0;return Math.max(1.5,4-.5*mn(cntIn(st,'sirene'),1))};
 const dutyTxt=st=>{const hr=rmin()/60,free=(hr>=18||hr<6)||isWE(),on=st.staff.filter(p=>!p.off&&!p.sick),b=on.filter(p=>p.k==='b').length,v=on.length-b;
+  if(st.cat===4&&shiftOn(st))return 'Schichtgruppe '+SGN[shiftGrp()]+' im Dienst ('+on.length+' alarmierbar)';
   return (st.cat===4&&!st.shift)?'rund um die Uhr im Dienst':(free?(isWE()&&hr>=6&&hr<18?'Wochenende':'Abend/Nacht'):'Tagdienst Mo–Fr')+': '+(b?b+' Berufler':'')+(b&&v?' + ':'')+(v?v+' Freiwillige':'')+(on.length?'':'niemand')+' alarmierbar'};
 const whyNot=v=>{if(v.state!=='hall')return v.state==='enroute'?'auf Anfahrt':v.state==='scene'?'im Einsatz':v.state==='logi'?'auf Materialfahrt':'auf Rückfahrt';
   if(v.srv>0)return (v.dl?'wird geliefert (noch ':v.pf?'bei der technischen Prüfung (noch ':'in Wartung (noch ')+Math.ceil(v.srv)+' min)';
@@ -81197,8 +81204,6 @@ function moveHTML(st){const why=moveWhy(st),used=new Set(S.stations.map(q=>q.fi)
 function moveDo(fi){const st=stOf(S.sel),f=FIRE[fi];if(!st||!f||moveWhy(st))return;if(S.stations.some(q=>q.fi===f.n))return;const fee=moveFee(st);if(S.money<fee){toast('Nicht genug Geld.');return}
   cost(fee,'Wache umsetzen');const o=st.name;st.x=f.x;st.y=f.y;st.node=nearestNode(f.x,f.y);delete st._tr;delete st._com;st.fi=f.n;st.name=f.n;
   say('🚚 '+o+' ist nach '+f.n+' ('+f.com+') umgezogen ('+fmt(fee)+').','ok');radio(null,'Leitstelle: '+f.n+' ist jetzt einsatzbereit am neuen Standort.',0,'ok')}
-function catUp(st){const c0=st.cat||2;if(c0>=4)return '';const o=[];for(let c=c0+1;c<=4;c++){const co=Math.max(0,newCost(c)-newCost(c0));o.push(`<button class="btn sm" data-act="catup" data-c="${c}" ${S.money<co?'disabled':''}>Kat. ${c} · ${fmt(co)}</button>`)}
-  return `<div class="row"><div><b>Wache ausbauen</b> <span class="m">Höhere Kategorie = mehr Berufspersonal und kürzere Anrückzeit. Einmaliger Umbau, Löhne und Fixkosten steigen; das Personal wird entsprechend umgestellt.</span></div><div style="display:flex;gap:4px">${o.join('')}</div></div>`}
 function rtwInfo(st){const e=st.staff.filter(p=>crewOk(p)&&RP.E(p)).length,d=st.staff.filter(p=>crewOk(p)&&RP.D(p)).length;
   return '<div class="m">'+(cntIn(st,'rdienst')?'✓ Stützpunkt vorhanden':'🔒 braucht Rettungsdienst-Stützpunkt')+" · Personal hier: "+e+"× Chef d'agrès (SAP 2 + COM 1), "+d+'× Fahrer (Maschinist)</div>'}
 function vTip(v){const st=stOf(v.st),inc=v.inc&&getInc(v.inc),cr=(v.crew||[]).map(id=>st&&st.staff.find(p=>p.id===id)).filter(Boolean);
@@ -81357,7 +81362,7 @@ function coachStep(){if(!S||S.sc!=='tut'||(S.coach||0)>=9)return null;const inc=
   if(!us.length)return dlg?1:0;if(us.some(v=>v.state==='enroute'))return 2;if(us.some(v=>v.state==='scene'))return 3;return 4}
 function coachDraw(){let el=$('coach');const k=coachStep();
   if(k==null){if(el)el.style.display='none';return}
-  if(k==='done'){S.coach=9;S.next=60;if(el)el.style.display='none';showModal('<div class="dlg"><h1>✅ Geschafft!</h1><p>Der erste Einsatz ist erledigt – das Fahrzeug ist zurück und wird nach dem Tanken wieder einsatzbereit. Ab jetzt kommen normale Einsätze. Tipp: Zwischen Einsätzen bist du Wachleiter – im Reiter Aufgaben siehst du deinen Tagesplan, im Reiter Wache läufst du selbst durch die Räume.</p><button class="btn pri" data-act="tut" data-i="end" style="width:100%">Weiter spielen</button></div>');return}
+  if(k==='done'){S.coach=9;S.next=60;if(el)el.style.display='none';showModal('<div class="dlg"><h1>✅ Geschafft!</h1><p>Der erste Einsatz ist erledigt – das Fahrzeug ist zurück und wird nach dem Tanken wieder einsatzbereit. Ab jetzt kommen normale Einsätze. So geht es weiter: 1) Im Reiter Wache baust du neue Räume und Garagen aus. 2) Zwischen Einsätzen erledigst du als Wachleiter die Aufgaben aus dem Reiter Aufgaben. 3) Mit genug Personal (4 Gruppen) schaltest du den Schichtbetrieb frei.</p><button class="btn pri" data-act="tut" data-i="end" style="width:100%">Weiter spielen</button></div>');return}
   if(!el){el=document.createElement('div');el.id='coach';el.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:40;max-width:min(560px,94vw);background:#1b6b3a;color:#fff;border:1px solid #6fe39a;border-radius:10px;padding:9px 13px;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.5);pointer-events:none';document.body.appendChild(el)}
   el.style.display='block';const t=COACH[k];if(el.textContent!==t)el.textContent=t}
 const NEEDST={ind:2,manv:2,gbr:3};
@@ -82263,6 +82268,10 @@ function planHTML(st){
   const chk=(s,l)=>{const c=planCheck(st,s);return c.bad.length?`<div class="hint" style="color:var(--amb)">⚠ ${l}: nur ${c.ok}/${c.total} Fahrzeuge voll besetzbar – ${c.bad.map(b=>call(b.v)+': '+b.txt).join(' · ')}. Mehr Personal einstellen oder ausbilden.</div>`:`<div class="hint" style="color:var(--grn)">✔ ${l}: alle ${c.total} eingeteilten Fahrzeuge sind besetzbar.</div>`};
   const need=Math.max(...['d','n'].map(s=>vs.filter(v=>planOn(st,v,s)).reduce((a,v)=>a+RL[v.type].length,0))),res=st.staff.length<need*1.3?`<div class="hint" style="color:var(--amb)">⚠ Wenig Reserve: ${st.staff.length} Kräfte für ${need} Pflicht-Plätze. Bei Krankheit, Urlaub oder Lehrgängen kann die Mindestbesatzung kurzzeitig fehlen – lieber ca. ${Math.ceil(need*1.3)} Kräfte einplanen.</div>`:'';
   return `<div class="card" style="margin-bottom:12px"><h2>Besetzungsplan</h2><div class="hint" style="margin:0 0 6px">Die Mindestbesatzung der eingeteilten Fahrzeuge ist immer vorhanden. Darüber hinaus rücken tagsüber je nach Freizeit weitere Kräfte aus, abends und am Wochenende ist die Besatzung voll. Fahrzeuge, die du ausschaltest, werden in dieser Zeit nicht besetzt.</div>${rows}${cat===1?'':chk('d','Tag')}${chk('n','Abend/Wochenende')}${res}</div>`}
+function shiftCard(st){const c=grpFix(st),need=groupNeed(st),ok=st.staff.length>=4*need,on=shiftOn(st);
+  const g=shiftGrp();
+  const gr=SGN.map((n,i)=>`<span class="tag ${on&&i===g?'ok':''}">${n}: ${c[i]}${on&&i===g?' ▶':''}</span>`).join(' ');
+  return `<div class="row"><div><b>Schichtbetrieb (4 Gruppen)</b> <span class="m">Immer eine Gruppe im Dienst, Wechsel 6 und 18 Uhr. Lohn −15 %. Benötigt ${need} Kräfte je Gruppe (${4*need} gesamt) – du hast ${st.staff.length}.${ok?'':' <b>Noch zu wenig Personal: alle bleiben rund um die Uhr im Dienst.</b>'}</span><div style="margin-top:4px">${gr}</div></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`}
 function persHTML(st){
   const cands=candsOf(st);
   const pfBar='<div class="seg" style="margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px">'+Object.keys(PFN).map(k=>`<button class="btn sm ${pf===k?'pri':''}" data-act="pfilt" data-t="${k}">${PFN[k]}</button>`).join('')+'</div>';
@@ -82271,13 +82280,13 @@ function persHTML(st){
     const rk=rankIdx(p),nx=RKX[rk+1];
     const stt=p.sick?`🤒 krank (noch ${p.sick} Tg)`:p.vac>0?`🏖️ abwesend/Urlaub (noch ${p.vac} Tg)`:p.rest?'😴 erschöpft – ruht':p.off?(p.k==='v'?'🏠 nicht verfügbar (Freizeit/Arbeit)':'🌙 dienstfrei'):p.tr?`🎓 ${QUAL[p.tr.k].n} – noch ${(p.tr.left/60).toFixed(1).replace('.',',')} h`:p.busy==='act'?'Dienstaufgabe':p.busy?'im Einsatz'+(p.act!=null?' (Aufgabe pausiert)':''):'frei';
     const tr=Object.keys(QUAL).filter(k=>!p.q[k]&&preOk(p,k)).map(k=>{const Q=QUAL[k],ro=reqOk(p,k);const ok=ro&&isFree(p)&&cntIn(st,Q.room)>0&&S.money>=Q.cost;return `<button class="btn sm" data-act="train" data-id="${p.id}" data-k="${k}" ${ok?'':'disabled'} ${ro?'':'title="Voraussetzung: '+reqTxt(k).replace(/"/g,"'")+'"'}>${Q.s} ${fmt(Q.cost)}${ro?'':' 🔒'}</button>`}).join(' ');
-    return `<div class="row"><div><b>${p.name}</b> <span class="tag">${ageOf(p)} J.</span> <span class="tag">${RKN[rk]}</span>${crewOk(p)?'':'<span class="tag amb">'+(p.q.san?'noch nicht fahrberechtigt (unter 16)':'SAP 1 fehlt – nicht einsatzfähig')+'</span>'}${rankXp(p)>rk&&rk<3?`<span class="tag amb">Beförderung wartet auf ${PROMO[rk]}</span>`:''} ${p.k==='v'?'<span class="tag">'+JOBN[jobOf(p)]+'</span>':''} ${p.k==='b'?'<span class="tag amb">Berufler</span>':'<span class="tag">Freiwilliger</span>'} ${q}<div class="m">${stt} · Müdigkeit<span class="mini"><i style="width:${Math.round(p.fat||0)}%"></i></span>Moral<span class="mini g"><i style="width:${Math.round(p.mor==null?70:p.mor)}%"></i></span>XP ${p.xp||0}${nx?' / '+nx:''}</div></div><div class="trn">${tr} <button class="btn sm" data-act="fire" data-id="${p.id}" ${p.busy||p.tr?'disabled':''} title="Entlassen">✕</button></div></div>`}).join('');
+    return `<div class="row"><div><b>${p.name}</b> <span class="tag">${ageOf(p)} J.</span>${shiftOn(st)?`<span class="tag">Gr. ${SGN[p.grp]}</span>`:''} <span class="tag">${RKN[rk]}</span>${crewOk(p)?'':'<span class="tag amb">'+(p.q.san?'noch nicht fahrberechtigt (unter 16)':'SAP 1 fehlt – nicht einsatzfähig')+'</span>'}${rankXp(p)>rk&&rk<3?`<span class="tag amb">Beförderung wartet auf ${PROMO[rk]}</span>`:''} ${p.k==='v'?'<span class="tag">'+JOBN[jobOf(p)]+'</span>':''} ${p.k==='b'?'<span class="tag amb">Berufler</span>':'<span class="tag">Freiwilliger</span>'} ${q}<div class="m">${stt} · Müdigkeit<span class="mini"><i style="width:${Math.round(p.fat||0)}%"></i></span>Moral<span class="mini g"><i style="width:${Math.round(p.mor==null?70:p.mor)}%"></i></span>XP ${p.xp||0}${nx?' / '+nx:''}</div></div><div class="trn">${tr} <button class="btn sm" data-act="fire" data-id="${p.id}" ${p.busy||p.tr?'disabled':''} title="Entlassen">✕</button></div></div>`}).join('');
   const cr=cands.map(c=>{const q=qHi(c.q).map(k=>`<span class="tag ok">${QUAL[k].s}</span>`).join('')||'<span class="tag">ohne Lehrgang</span>';
     const dis=st.staff.length>=pcap(st)||S.money<c.cost;
     return `<div class="row"><div><b>${c.name}</b> <span class="tag">${c.age||''} J.</span> ${'<span class="tag amb">Berufler</span>'} ${c.jf?'<span class="tag amb">Jugendfeuerwehr</span>':''} ${q}<div class="m">${c.xp?'Erfahrung '+c.xp+' XP · ':''}${c.jf?'Nachwuchs aus der eigenen Jugendfeuerwehr':'Bewerber'}</div></div><button class="btn sm pri" data-act="cand" data-id="${c.id}" ${dis?'disabled':''}>Einstellen (${c.cost?fmt(c.cost):'kostenlos'})</button></div>`}).join('');
   const schule=cntIn(st,'schule')>0;
   const P1=`<div class="card"><h2>Dienstbetrieb</h2>
-  <div class="row"><div><b>Dienstmodell</b><div class="m">Dein Personal ist hauptberuflich. Jetzt – ${dutyTxt(st)}.</div></div></div>${st.cat===4?`<div class="row"><div><b>Schichtbetrieb</b> <span class="m">Tag 6–18 Uhr / Nacht 18–6 Uhr, Lohn −15 %, Pausierte erholen sich schneller – aber nur die halbe Mannschaft ist zugleich im Dienst.</span></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`:''}
+  <div class="row"><div><b>Dienstmodell</b><div class="m">Dein Personal ist hauptberuflich. Jetzt – ${dutyTxt(st)}.</div></div></div>${st.cat===4?shiftCard(st):''}
   <div class="row"><div><b>Jugendfeuerwehr</b> <span class="m">Alle 8 Tage ein kostenloser Nachwuchs-Bewerber · 150 €/Tag · braucht einen Schulungsraum.</span></div><button class="btn sm ${st.jf?'pri':''}" data-act="jf" ${(schule||st.jf)&&st.cat!==4?'':'disabled'}>${st.jf?'AN':'AUS'}</button></div></div>`;
   const P2=`${jugHTML(st)}<div class="card"><h2>Personal ${st.staff.length} / ${pcap(st)}</h2>${pfBar}${rows||'<div class="empty">Niemand in dieser Gruppe.</div>'}
   ${hireRows(st)}
@@ -82368,7 +82377,13 @@ function bereitCard(){const st=stOf(S.sel)||S.stations[0];if(!st)return '';
   const pc=(v,g)=>v>=g?'ok':(v>=g*.6?'amb':'bad');
   const row=(n,v,g,t)=>`<div class="row"><span>${n}</span><span class="tag ${pc(v,g)}">${t}</span></div>`;
   return `<div class="card"><h2>Einsatzbereitschaft</h2>${row('🚒 Fahrzeuge einsatzklar',ok,Math.max(1,vs.length),ok+' / '+vs.length)}${row('👥 Personal verfügbar',fr,Math.max(1,st.staff.length),fr+' / '+st.staff.length)}${row('🏠 Zustand der Wache',cond,80,cond+' %')}${row('📦 Material',lt<=0?1:0,1,lt<=0?'aufgefüllt':'Nachschub '+fmt(lt))}<div class="hint">Wartung, Wäsche und Lager erledigst du selbst als Wachleiter – das hält die Wache bereit und senkt Ausfälle.</div></div>`}
-function aufgHTML(){return `<div class="fgrid"><div class="stack">${aufgHTML0()}</div><div class="stack">${bereitCard()}${lagerSum()}${reportCard()}${repCard()}</div></div>`}
+function goalsCard(){const q=stOf(S.sel)||S.stations[0];if(!q)return '';
+  const rows=[];
+  const need=groupNeed(q);if(!shiftOn(q))rows.push(['👥 Schichtbetrieb freischalten',q.staff.length+' / '+4*need+' Kräfte (4 Gruppen à '+need+')']);
+  const pend=ACH.filter(a=>!S.ach[a.id]).slice(0,4);pend.forEach(a=>rows.push(['🏆 '+a.n,a.d+' · '+fmt(a.rew)]));
+  if(!rows.length)return '';
+  return `<div class="card"><h2>Nächste Ziele</h2>${rows.slice(0,5).map(r=>`<div class="row"><div><b>${r[0]}</b><div class="m">${r[1]}</div></div></div>`).join('')}</div>`}
+function aufgHTML(){return `<div class="fgrid"><div class="stack">${aufgHTML0()}</div><div class="stack">${bereitCard()}${goalsCard()}${lagerSum()}${reportCard()}${repCard()}</div></div>`}
 function aufgHTML0(){
   const acts=S.daily.map((d,i)=>{
     if(d.t==='act'){if(d.chore==='fl'&&d.done)return '';
@@ -82489,7 +82504,12 @@ const EVENTS=[
  ()=>{const vs=S.vehicles.filter(v=>v.state==='hall');if(!vs.length)return ['🔧 Routinekontrolle ohne Befund.','ok'];const v=vs[Math.floor(Math.random()*vs.length)];v.cond=Math.max(15,(v.cond??100)-25);return ['🔧 Defekt an '+call(v)+': Zustand −25 %. Bitte Werkstatt prüfen.','bad']},
  ()=>{fund(1000,'Spenden');return ['🎁 Sachspende eines Unternehmers: +1.000 €.','ok']},
  ()=>{const avg=S.stations.reduce((a,q)=>a+(q.cond??100),0)/S.stations.length;if(avg>=80){fund(2000,'Förderung');repAdd(1,'Brandschutzprüfung bestanden');return ['📋 Brandschutzprüfung bestanden: Lob der Aufsicht, +2.000 €, Ansehen +1.','ok']}cost(1000,'Auflagen');return ['📋 Brandschutzprüfung: Mängel festgestellt, Auflagen kosten 1.000 €. Zustand der Wachen verbessern!','bad']},
- ()=>{S.jam={left:120};return ['🚧 Großer Stau auf der Autobahn: Fahrzeiten für 2 Stunden deutlich länger.','bad']}
+ ()=>{S.jam={left:120};return ['🚧 Großer Stau auf der Autobahn: Fahrzeiten für 2 Stunden deutlich länger.','bad']},
+ ()=>{const q=S.stations[0],vs=S.vehicles.filter(v=>v.st===q.id);const late=vs.filter(v=>S.day-(v.rdy??S.day)>=2).length,low=vs.filter(v=>(v.cond??100)<60).length;
+   if(!late&&!low){fund(1500,'Prämie');repAdd(1,'Inspektion');return ['🔍 Inspektion der Aufsichtsbehörde: Fahrzeuge geprüft und in Ordnung – Prämie 1.500 €, Ansehen +1.','ok']}
+   cost(900,'Auflagen');repAdd(-1,'Inspektion');return ['🔍 Inspektion: '+(late?late+' Fahrzeug(e) nicht bereitgestellt':'')+(late&&low?', ':'')+(low?low+' mit schlechtem Zustand':'')+'. Auflagen 900 €, Ansehen −1. Tipp: Fahrzeug-Check und Werkstatt als Wachleiter.','bad']},
+ ()=>{const q=S.stations[0];q.staff.forEach(p=>{p.xp=(p.xp||0)+1});return ['🎓 Übungstag mit der Nachbarschaft: Die Mannschaft sammelt Erfahrung.','ok']},
+ ()=>{const q=S.stations[0];if(!cntIn(q,'kueche'))return ['🍲 Kochabend im Mannschaftsraum – leider ohne Küche nur Brötchen.','ok'];fund(400,'Spenden');return ['🍲 Besuch von Anwohnern in der Küche: Spenden 400 €.','ok']}
 ];
 function randEvent(){const r=EVENTS[Math.floor(Math.random()*EVENTS.length)]();say(r[0],r[1]);S.evlog.unshift({d:S.day,m:r[0],c:r[1]});if(S.evlog.length>8)S.evlog.pop()}
 function dayExtra(first){
@@ -83009,7 +83029,6 @@ function act(a,d){
     case 'movedo':{moveDo(+d.f);hideModal();save();break}
     case 'movex':hideModal();break
     case 'bal':{const V=[.5,.75,1,1.25,1.5,2];if(!S.bal)S.bal={freq:1,sick:1,wage:1};let i=V.indexOf(S.bal[d.k]);if(i<0)i=2;i=Math.max(0,Math.min(V.length-1,i+(+d.d)));S.bal[d.k]=V[i];save();openMenu(menuMsg);break}
-    case 'catup':{const q=stOf(S.sel),c=+d.c;if(!q||!(c>(q.cat||2))||c>4)break;const co=Math.max(0,newCost(c)-newCost(q.cat||2));if(S.money<co){toast('Nicht genug Geld.');break}cost(co,'Kategorie-Ausbau');q.cat=c;reslot(q,c);q.staff.forEach((p,i)=>{p.k=c===4?'b':c===3?(i%2===0?'b':'v'):'v'});say('🏛️ '+q.name+' ist jetzt '+CISN[c]+' (Umbau '+fmt(co)+').','ok');break}
     case 'restock':{const q=stOf(+d.id);if(q){restockRtw(q);S.vehicles.forEach(v=>{if(v.st===q.id&&v.state==='hall')topUp(v)})}break}
     case 'restockall':{S.stations.forEach(q=>{restockRtw(q);S.vehicles.forEach(v=>{if(v.st===q.id&&v.state==='hall')topUp(v)})});break}
     case 'floor':buyFloor(d.fl);break;
@@ -83085,7 +83104,7 @@ window.addEventListener('message',e=>{const d=e.data;if(!d||!d.wach112||!S)retur
   if(d.wach112==='leaderArrive'){leaderSeen=true;const typ=d.veh!=null||d.typ==='rtwhalle'?'halle':d.typ;S.leaderAt={typ};const a=d.veh!=null?'Fahrzeugbereitstellung':(LEADER_ACT[d.typ]||null);const run=(S.daily||[]).find(x=>x.t==='act'&&x.run&&!x.done&&(x.loc||actLoc(x))===typ);if(d.fromGo!==false)toast(run?'Du bist da – Aufgabe läuft: '+(run.chore?choreName(run):run.n):(a?'Du bist angekommen: '+a:'Du bist angekommen.'))}
   else if(d.wach112==='leaderMove'){leaderSeen=true;S.leaderAt=null}
   else if(d.wach112==='leaderFail')toast(d.reason||'Dorthin kommst du nicht.')});
-if(typeof window!=='undefined')window.__W={crewWhy,pickCrew,TPL,svcGen,leaderWork,actLoc,pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
+if(typeof window!=='undefined')window.__W={shiftOn,groupNeed,shiftGrp,grpFix,crewWhy,pickCrew,TPL,svcGen,leaderWork,actLoc,pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
 })();
 
 </script>
