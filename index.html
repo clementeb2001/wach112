@@ -263,6 +263,8 @@ body.shell[data-tab=wachen] #p-wachen .wtop{top:0;background:#111821}
   #p-wachen .trn{width:100%;justify-content:flex-start;margin-top:3px}
 }
 
+.leaderbar{background:var(--card,#161b22);border:1px solid var(--line,#2a313c);border-radius:10px;padding:8px 10px;margin-bottom:8px}.lchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.lchip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--line,#2a313c);border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}.lchip .ln{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alarmbar{background:rgba(216,35,42,.12);border:1px solid var(--red,#d8232a);border-radius:10px;padding:6px 10px;margin-bottom:8px}.arow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}.arow+.arow{border-top:1px solid rgba(255,255,255,.08)}
 </style>
 </head>
 <body>
@@ -80845,7 +80847,7 @@ function trStart(){if(trObs||typeof MutationObserver==='undefined')return;trObs=
 function trApply(){trStart();trTree(document.body)}
 function saveSet(){try{localStorage.setItem('wach112_set',JSON.stringify(SET))}catch(e){}document.body.classList.toggle('big',!!SET.big);document.body.classList.toggle('hc',!!SET.hc)}
 const WX={klar:'☀️',regen:'🌧️',schnee:'❄️',sturm:'💨'};
-const TABS=[['karte','🗺️ Karte'],['einsaetze','🚨 Einsätze'],['wachen','🏠 Wachen'],['funk','📻 Funk'],['aufgaben','📋 Aufgaben'],['wirt','💶 Wirtschaft']];
+const TABS=[['wachen','🏠 Wache'],['einsaetze','🚨 Einsätze'],['karte','🗺️ Karte'],['aufgaben','📋 Aufgaben'],['funk','📻 Funk'],['wirt','💶 Wirtschaft']];
 const CLSW=[4,3,3,2.5,1.5,1,0];
 
 let mapF={veh:1,inc:1,stn:1,hosp:1,names:1,heat:0},selCell=null,moving=null,undoStack=[],crot=0,wallsLow=false,VB={x:0,y:0,w:1,h:1,gz:0},zmode='bau',bview='3dn',lvlSel='out',wsub='bau',selRoom=null,S=null,speed=1,tool=null,dlg=null,startOpen=false,confirmReset=false,lastDown=null,tc=0,tab='karte',showRad=true,newFi=0,seenRadio=0,dragMoved=false,roadsQ=false;
@@ -82118,12 +82120,12 @@ function bauHTML(st){
   const auOpenG=g=>auOpen[g]===undefined?g===g0:auOpen[g];
   const NEXT=['umkleide','mannschaft','kueche','wc','werkstatt','atemschutz','schlauchwaesche','lager','schule','schlaf','buero','zentrale','fitness','kleider'];
   const vFireN=vOf(st).filter(v=>!isRD(v.type)).length;
-  const nextKs=((vFireN>=slots(st)?['halle']:[]).concat(NEXT)).filter(k=>ROOMS[k]&&roomMax(st,k)>0&&cntRooms(st,k)<roomMax(st,k)&&!ausbauPlan(st,k).blocked).slice(0,3);
+  const okK=k=>ROOMS[k]&&roomMax(st,k)>0&&cntRooms(st,k)<roomMax(st,k)&&!ausbauPlan(st,k).blocked,nextKs=[...new Set([...(vFireN>=slots(st)?['halle']:[]),...NEXT.filter(k=>cntRooms(st,k)===0),...NEXT])].filter(okK).slice(0,3);
   const nextBox=nextKs.length?`<div class="nextstep"><b>➡ Nächste sinnvolle Schritte</b>${nextKs.map(k=>{const r=ROOMS[k],pl=ausbauPlan(st,k);return `<div class="rrow"><div class="rhead"><div><b>${r.i} ${r.n}</b> <span class="tag">${cntRooms(st,k)}/${roomMax(st,k)}</span></div><button class="btn sm ${S.money<pl.cost?'':'pri'}" data-act="ausbau" data-k="${k}" ${S.money<pl.cost?'disabled':''}>🔨 ${fmt(pl.cost)}</button></div></div>`}).join('')}</div>`:'';
   const list=nextBox+Object.keys(CATN).map(g=>{const ents=Object.entries(ROOMS).filter(([k,r])=>r.g===g&&roomMax(st,k)>0);const built=ents.reduce((a,[k])=>a+cntRooms(st,k),0),tot=ents.reduce((a,[k])=>a+roomMax(st,k),0);return ents.length?`<button class="catn catn-t" data-act="aucat" data-g="${g}"><span>${auOpenG(g)?'▾':'▸'} ${CATN[g]}</span><span class="tag">${built}/${tot}</span></button>`+(auOpenG(g)?ents.map(([k,r])=>{
     const n=cntRooms(st,k),maxed=n>=roomMax(st,k),pl=ausbauPlan(st,k),dis=maxed||pl.blocked||S.money<pl.cost;
     return `<div class="rrow"><div class="rhead"><div><b>${r.i} ${r.n}</b> <span class="tag">${n}/${roomMax(st,k)}</span><div class="m">${r.d}</div>${!maxed&&pl.note?`<div class="m" style="color:var(--amb)">${pl.note}</div>`:''}</div><button class="btn sm ${dis?'':'pri'}" data-act="ausbau" data-k="${k}" ${dis?'disabled':''}>${maxed?'Voll':'🔨 Ausbauen<br><small>'+fmt(pl.cost)+'</small>'}</button></div>${rowsOf(k)}</div>`}).join(''):''):''}).join('')+(()=>{const later=Object.keys(ROOMS).filter(k=>!roomMax(st,k)&&minCat(k)).map(k=>ROOMS[k].n+' (ab Kat. '+minCat(k)+')');return later.length?`<div class="hint">In dieser Kategorie nicht möglich: ${later.join(', ')}.</div>`:''})();
-  return `<div class="bau"><div class="card"><h2><input id="stname" class="stname" value="${st.name.replace(/"/g,'')}" maxlength="28" title="Wache umbenennen"> <span class="m">– Gebäude</span> ${emblemUI(st)}</h2><div class="bwrap"><div id="w3dslot"></div></div><div style="margin-top:8px">${effHTML(st)}</div>${ausbauHTML(st)}</div>
+  return `<div class="bau"><div class="card"><h2><input id="stname" class="stname" value="${st.name.replace(/"/g,'')}" maxlength="28" title="Wache umbenennen"> ${emblemUI(st)}</h2><div class="bwrap"><div id="w3dslot"></div></div><div style="margin-top:8px">${effHTML(st)}</div>${ausbauHTML(st)}</div>
   <div class="card palc"><h2>Ausbau</h2><div class="hint" style="margin:0 0 6px">Ein Klick genügt – der Raum wird automatisch an einem passenden Platz gebaut.</div>${list}</div></div>`;
 }
 function hireRows(st){const full=st.staff.length>=pcap(st),c=st.cat||2,ks=c===4?['b']:c===3?['b','v']:['v'];
@@ -82201,6 +82203,17 @@ function gebHTML(st){
   <div class="row"><div><b>Alarmfrist</b> <span class="m">Zeit bis ein Einsatz scheitert</span></div><b>×${fxFunk().toFixed(2)}</b></div>
   <div class="hint">Ausrückzeit senken: Umkleide (−0,4), Wachzentrale (−0,3), Sirene (−0,3). Alarmfrist verlängern: Wachzentrale. Je größer das Einsatzgebiet, desto mehr Einsätze erzeugt die Wache.</div><div style="margin-top:8px">${effHTML(st)}</div></div>`;
 }
+function alarmBar(){
+  if(!S.incidents.length)return '';
+  return `<div class="alarmbar">${S.incidents.slice(0,3).map(inc=>{const u=inc.units.length;return `<div class="arow"><div><b>🚨 ${inc.i} ${inc.n}</b><div class="m">${inc.place}${u?'':' · Frist '+Math.max(0,Math.ceil(inc.wait))+' min'}</div></div><div style="display:flex;gap:6px"><button class="btn sm" data-act="focus" data-id="${inc.id}">🎯</button><button class="btn sm pri" data-act="disp" data-id="${inc.id}">${u?'Nachalarmieren':'Alarmieren'}</button></div></div>`}).join('')}${S.incidents.length>3?`<div class="m">+${S.incidents.length-3} weitere im Tab Einsätze</div>`:''}</div>`}
+function leaderBar(){
+  const q=stOf(S.sel)||S.stations[0];if(!q)return '';
+  const open=(S.daily||[]).map((d,i)=>[d,i]).filter(([d])=>d.t==='act'&&!d.done);
+  const here=leaderSeen?(S.leaderAt?(ROOMN[S.leaderAt.typ]||'in der Wache'):'unterwegs'):'in der Wache';
+  const chips=open.slice(0,5).map(([d,i])=>{const nm=d.chore?choreName(d):d.n,loc=ROOMN[d.loc||actLoc(d)]||'';
+    const act=d.run?(actPaused(d)?(alarmOn()?'⏸':`<button class="btn sm" data-act="dgo" data-i="${i}">📍</button>`):`<span style="display:inline-block;width:46px;vertical-align:middle">${bar((1-d.left/d.dur)*100,'d')}</span>`):`<button class="btn sm" data-act="dstart" data-i="${i}">Start</button>`;
+    return `<span class="lchip" title="${loc}"><span class="ln">${nm}</span> ${act}</span>`}).join('');
+  return `<div class="leaderbar"><b>🧑‍🚒 Wachleiter</b> <span class="m">${here}</span>${alarmOn()?' <span class="tag red">Alarm – Aufgaben pausiert</span>':''}<div class="lchips">${chips||'<span class="m">Keine offenen Aufgaben.</span>'}</div></div>`}
 function wachenHTML(){
   const st=stOf(S.sel)||S.stations[0];
   const chips1=S.stations.map((q,i)=>`<button class="scard ${q.id===st.id?'on':''}" style="border-left:4px solid ${q.col||'var(--red)'}" data-act="sel" data-id="${q.id}"><b>${i+1}. ${q.name}</b><div class="m">${RAD[q.rl]} km · Kat. ${q.cat||2} · 🚒 ${vFire(q).length}/${slots(q)}${rslots(q)?' · 🚑 '+vRD(q).length+'/'+rslots(q):''} · 👥 ${q.staff.length}/${pcap(q)} (${crewFree(q)} frei)</div></button>`).join('')+`<button class="scard" data-act="wnew" style="min-width:120px;text-align:center"><b>${wnew?'✕ Schließen':'＋ Neue Wache'}</b></button>`;
@@ -82210,7 +82223,7 @@ function wachenHTML(){
   const tabs=[['bau','🏗️ Gebäude'],['pers','👥 Personal'],['fuhr','🚒 Fuhrpark'],['geb','📡 Gebiet']].map(([k,l])=>`<button data-act="wsub" data-t="${k}" class="${wsub===k?'on':''}">${l}</button>`).join('');
   const body=wsub==='bau'?bauHTML(st):wsub==='pers'?persHTML(st):wsub==='fuhr'?fuhrHTML(st):gebHTML(st);
   const active=S.stations.length<2?'':`<div class="hint active-station"><b>Aktive Wache: ${st.name}</b> · alle Aktionen gelten für diese Wache.</div>`;
-  return `<div class="stack"><div class="wtop">${chips}</div>${active}${nc}<div class="stabs">${tabs}</div>${body}</div>`;
+  return `<div class="stack">${alarmBar()}${leaderBar()}${active}${nc}<div class="stabs">${tabs}</div>${body}</div>`;
 }
 function hospHTML(){return `<div class="hint" style="margin:0 0 6px"><b>Krankenhäuser</b> – Betten belegt</div>`+hospsOf().map(h=>`<div class="row"><span>🏥 ${h.n}</span><span style="display:flex;gap:8px;align-items:center"><div style="width:80px">${bar(h.pats.length/h.cap*100,h.pats.length>=h.cap?'bad':'d')}</div><b>${h.pats.length}/${h.cap}</b></span></div>`).join('')}
 function funkHTML(){
@@ -82940,7 +82953,7 @@ window.addEventListener('message',e=>{const d=e.data;if(!d||!d.wach112||!S)retur
   if(d.wach112==='leaderArrive'){leaderSeen=true;const typ=d.veh!=null||d.typ==='rtwhalle'?'halle':d.typ;S.leaderAt={typ};const a=d.veh!=null?'Fahrzeugbereitstellung':(LEADER_ACT[d.typ]||null);const run=(S.daily||[]).find(x=>x.t==='act'&&x.run&&!x.done&&(x.loc||actLoc(x))===typ);if(d.fromGo!==false)toast(run?'Du bist da – Aufgabe läuft: '+(run.chore?choreName(run):run.n):(a?'Du bist angekommen: '+a:'Du bist angekommen.'))}
   else if(d.wach112==='leaderMove'){leaderSeen=true;S.leaderAt=null}
   else if(d.wach112==='leaderFail')toast(d.reason||'Dorthin kommst du nicht.')});
-if(typeof window!=='undefined')window.__W={TPL,svcGen,leaderWork,actLoc,pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
+if(typeof window!=='undefined')window.__W={crewWhy,pickCrew,TPL,svcGen,leaderWork,actLoc,pickHosp,huTick,buyDo,needsBig,newStation,logiTick,spFor,distKm,autoBuild,buy,roomMax,canPlace,cntRooms,cgState,slots,choreCheck,flowTick,planCheck,fixRoles,dutyOffs,waterInfo,VT,veh,spd:()=>{const o={};for(let e=0;e<ELEN.length;e++){const c=ECL[e];const r=o[c]=o[c]||[0,0,0];r[0]+=ELEN[e];r[1]+=ELEN[e]/Math.max(ESP[e],5);r[2]++}return Object.fromEntries(Object.entries(o).map(([c,r])=>[c,[Math.round(r[2]),Math.round(r[0]),Math.round(r[0]/r[1])]]))},addVeh,etaTo,pickLoc,mkInc,bmaTick,vIcon,sendVeh,sendBack,fillV,autoTick,autoFuel,fuelOnRoute,fuelPlan,councilTick,councilNew,councilProg,moveDo,moveWhy,heatNear,coachStep,coachDraw,tutInc,FUELST,nearHyd,hydDist,areaWhy,vacTick,leadTick,hoseNeed,stCom,communeAt,dayRep,probeTick,catUp,vTip,ageEvents,jugHTML,INC,pickCrew,solveRoles,ageOf,mkQ,RL,rankIdx,reqOk,dutyOffs,repAdd,incReport,whyNot,crewWhy,anrueck,mkInc,stormBurst,hire,newCost,buildAt,ready,get S(){return S},tick,spawn,act,dlgGo,openDlg,dlgToggle,taskStart,dailyStart,newGame,draw,veh,getInc,stOf,setDlg:v=>{dlg=v},get dlg(){return dlg},pickLoc,COM,RAD,FIRE:()=>FIRE,approach,etaTo,routeTo,routeBack,trees,nearestNode,found,showTab,vpos,route,set newFi(v){newFi=v},stats:()=>({nodes:NX.length,edges:ECL.length,arcs:AT.length}),placeName,drawRoads};
 })();
 
 </script>
