@@ -81154,7 +81154,7 @@ function pickCrew(st,type,sz,mxo){
   const r=sol.concat(A.filter(p=>crewOk(p)&&p.q.fis1&&!sol.includes(p)).sort((a,b)=>sc(b)-sc(a)).slice(0,n-sol.length));r.miss=[];return r}
 function say(m,c){S.log.unshift({t:hhmm(rmin()),m,c:c||''});if(S.log.length>120)S.log.pop();
   if(!/^(🚨|✖|Neue Wache|Wache .* gegründet|Einsatz .* abgebrochen)/.test(m)&&!S.radio.slice(0,3).some(r=>r.m===m)){S.radio.unshift({t:hhmm(rmin()),w:'Meldung',s:0,m,c:c||''});S.radioN++;if(S.radio.length>400)S.radio.pop()}}
-function radio(v,txt,s,c){S.radio.unshift({t:hhmm(rmin()),w:v?call(v):'Leitstelle',s:s||0,m:txt,c:c||''});S.radioN++;if(S.radio.length>400)S.radio.pop()}
+function radio(v,txt,s,c){S.radio.unshift({t:hhmm(rmin()),w:v?call(v):'Funk',s:s||0,m:txt,c:c||''});S.radioN++;if(S.radio.length>400)S.radio.pop()}
 function toast(m){if(!SET.toast)return;const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tc);tc=setTimeout(()=>t.classList.remove('on'),2200)}
 function earn(n,why){finSync();S.money+=n;S.stats.earned+=n;fIn(n,/^Tagesziel|^Alle Tagesaufgaben/.test(why)?'Aufgaben & Ziele':'Einsätze');S._lm=S.money;say('+'+fmt(n)+' – '+why,'ok')}
 
@@ -81180,7 +81180,7 @@ function newGame(fi,scn,dif,cat){
   rollDay(true);weekRoll(false);
   if(scn==='tut'){S.coach=0;tutInc(st)}
   say('Wache '+st.name+' gegründet. Du startest mit einem HLF – für den Rettungsdienst baust du später einen Stützpunkt.');
-  radio(null,'Leitstelle: '+st.name+' ist einsatzbereit.',0,'ok');
+  radio(null,st.name+' ist einsatzbereit.',0,'ok');
   seenRadio=S.radioN;save();
 }
 function huTick(){for(const v of S.vehicles){if(v.hu==null)v.hu=S.day+30+((v.id*37)%60);if(S.day>=v.hu&&v.state==='hall'&&!(v.srv>0)){const c=350;if(S.money<c)continue;cost(c,'Wartung');v.srv=240;v.pf=1;v.hu=S.day+90;say('🔍 Technische Prüfung fällig: '+call(v)+' ist ca. 4 Std. außer Dienst ('+fmt(c)+').')}}}
@@ -81231,7 +81231,7 @@ function coachStep(){if(!S||S.sc!=='tut'||(S.coach||0)>=9)return null;const inc=
   if(!us.length)return dlg?1:0;if(us.some(v=>v.state==='enroute'))return 2;if(us.some(v=>v.state==='scene'))return 3;return 4}
 function coachDraw(){let el=$('coach');const k=coachStep();
   if(k==null){if(el)el.style.display='none';return}
-  if(k==='done'){S.coach=9;S.next=60;if(el)el.style.display='none';showModal('<div class="dlg"><h1>✅ Geschafft!</h1><p>Der erste Einsatz ist erledigt – das Fahrzeug ist zurück und wird nach dem Tanken wieder einsatzbereit. Ab jetzt kommen normale Einsätze. Tipp: Im Menü ☰ findest du die Automatik (Tanken, Wartung, Routine) und im Reiter Wirtschaft die Wünsche des Gemeinderats.</p><button class="btn pri" data-act="tut" data-i="end" style="width:100%">Weiter spielen</button></div>');return}
+  if(k==='done'){S.coach=9;S.next=60;if(el)el.style.display='none';showModal('<div class="dlg"><h1>✅ Geschafft!</h1><p>Der erste Einsatz ist erledigt – das Fahrzeug ist zurück und wird nach dem Tanken wieder einsatzbereit. Ab jetzt kommen normale Einsätze. Tipp: Zwischen Einsätzen bist du Wachleiter – im Reiter Aufgaben siehst du deinen Tagesplan, im Reiter Wache läufst du selbst durch die Räume.</p><button class="btn pri" data-act="tut" data-i="end" style="width:100%">Weiter spielen</button></div>');return}
   if(!el){el=document.createElement('div');el.id='coach';el.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:40;max-width:min(560px,94vw);background:#1b6b3a;color:#fff;border:1px solid #6fe39a;border-radius:10px;padding:9px 13px;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.5);pointer-events:none';document.body.appendChild(el)}
   el.style.display='block';const t=COACH[k];if(el.textContent!==t)el.textContent=t}
 const NEEDST={ind:2,manv:2,gbr:3};
@@ -81337,7 +81337,7 @@ function tick(dt){
     if(inc.esc&&(inc.lvl||1)<3&&inc.units.length&&(inc.sage||0)>=(inc.lvl||1)*40&&inc.tasks.some(t=>t.cap===inc.esc&&t.st!=='done')){inc.lvl=(inc.lvl||1)+1;inc.rew=Math.round(inc.rew*1.3);
       inc.tasks.push({n:'Brandausbreitung bekämpfen',cap:inc.esc,dur:35,left:35,st:'wait',v:null,tp:0});
       radio(null,'⚠ '+inc.n+' ('+inc.place+'): Alarmstufe '+inc.lvl+' – das Feuer breitet sich aus!',0,'bad');say('⚠ Alarmstufe '+inc.lvl+': '+inc.n+' – Nachalarmieren!','bad');sfx('alarm')}
-    for(const t of inc.tasks)if(t.st==='wait'&&t.aidEta){t.aidEta-=dt;if(t.aidEta<=0){delete t.aidEta;t.st='run';t.ext=1;t.v=null;radio(null,(t.sp?t.sp+' trifft ein: ':'Nachbarwehr trifft ein: ')+t.n+' begonnen ('+inc.place+').',0,'ok')}}
+    for(const t of inc.tasks)if(t.st==='wait'&&t.aidEta){t.aidEta-=dt;if(t.aidEta<=0){delete t.aidEta;t.st='run';t.ext=1;t.v=null;radio(null,(t.sp?t.sp+' trifft ein: ':'Spezialkräfte treffen ein: ')+t.n+' begonnen ('+inc.place+').',0,'ok')}}
     if(!inc.units.length&&!inc.tasks.some(t=>(t.ext||t.aidEta)&&!t.sp)){inc.wait-=dt;if(inc.wait<=0){fail(inc);continue}}
     if(!S.manual)inc.tasks.forEach((t,i)=>{if(t.st==='wait')taskStart(inc.id,i,true)});
     for(const t of inc.tasks){if(t.st==='run'){const v=veh(t.v);{const mm=(v?taskMult(v,t):(t.ext?(t.sp?1:.7):1));t.left-=dt*mm;if(v&&t.cap==='fire')useWat(v,inc,dt*Math.min(1,mm))}if(t.left<=0){t.st='done';if(v){v.busy=null;useMat(v,t,inc);radio(v,t.n+' abgeschlossen.',4,'ok')}t.v=null}}}
@@ -81468,12 +81468,12 @@ function applyCfg(v,t){const cfg={};for(const [id,title,o] of CFG[t]||[]){const 
   if(x.ld)for(const k in x.ld)v.ld[k]=(v.ld[k]||0)+x.ld[k]}
   v.cfg=cfg}
 function shopLock(st,k){
-  if(isRD(k)){if((st.cat||2)<3)return '🔒 ab Kat. 3';if(!cntIn(st,'rdienst'))return '🔒 Stützpunkt nötig';if(!rslots(st))return '🔒 RTW-Garage bauen';if(vFull(st,k))return '🔒 RTW-Garagen voll'}
+  if(isRD(k)){if(!cntIn(st,'rdienst'))return '🔒 Stützpunkt nötig';if(!rslots(st))return '🔒 RTW-Garage bauen';if(vFull(st,k))return '🔒 RTW-Garagen voll'}
   else if(vFull(st,k))return '🔒 Garage bauen';
   return ''}
 function buy(t){
   const st=stOf(S.sel),v=VT[t];
-  if(isRD(t)&&(st.cat||2)<3){toast('Rettungsfahrzeuge gibt es erst in Wachen ab Kat. 3 (eigener RTW-Trakt).');return}
+  
   if(isRD(t)&&!cntIn(st,'rdienst')){toast('Baue zuerst einen Rettungsdienst-Stützpunkt.');return}
   if(vFull(st,t)){toast(isRD(t)?'Keine freie RTW-Garage – baue eine neue.':'Keine freie Garage – baue eine neue Garage.');return}
   if(CFG[t]){if(S.money<v.cost-9000){toast('Nicht genug Geld.');return}openBuyCfg(t);return}
@@ -81689,7 +81689,7 @@ const cache={};
 function setH(id,html){if(cache[id]!==html){cache[id]=html;$(id).innerHTML=html}}
 function showModal(h){const m=$('modal');m.innerHTML=h;m.classList.remove('hidden')}
 function hideModal(){$('modal').classList.add('hidden');$('modal').innerHTML=''}
-function startBriefingHTML(){return `<div class="dlg duty-start"><h1>🏁 Wache bereit</h1><p>Die Spielzeit ist angehalten. Prüfe zuerst deine Wache, Fahrzeugbesetzung und den ersten Ausbau. Erst mit <b>Dienst beginnen</b> können Einsätze eingehen und Fristen ablaufen.</p><div class="brief-grid"><div><b>1 · Wache</b><span>3D-Rundgang und Bauplanung</span></div><div><b>2 · Personal</b><span>Besetzung und Verfügbarkeit</span></div><div><b>3 · Fuhrpark</b><span>Fahrzeug, Wasser und Zustand</span></div></div><button class="btn pri" data-act="dienststart" style="width:100%;padding:11px">▶ Dienst beginnen</button><p class="m" style="margin:9px 0 0">Die Uhr bleibt bis dahin auf Pause. Bei mehreren Wachen wird immer die gerade ausgewählte Wache angezeigt.</p></div>`}
+function startBriefingHTML(){return `<div class="dlg duty-start"><h1>🏁 Wache bereit</h1><p>Die Spielzeit ist angehalten. Prüfe zuerst deine Wache, Fahrzeugbesetzung und den ersten Ausbau. Erst mit <b>Dienst beginnen</b> können Einsätze eingehen und Fristen ablaufen.</p><div class="brief-grid"><div><b>1 · Wache</b><span>Rundgang, Wachleiter, Ausbau</span></div><div><b>2 · Aufgaben</b><span>Tagesplan und Material</span></div><div><b>3 · Fuhrpark</b><span>Fahrzeug, Wasser und Zustand</span></div></div><button class="btn pri" data-act="dienststart" style="width:100%;padding:11px">▶ Dienst beginnen</button><p class="m" style="margin:9px 0 0">Die Uhr bleibt bis dahin auf Pause. Zwischen Einsätzen erledigst du als Wachleiter Aufgaben in den Räumen deiner Wache.</p></div>`}
 function showStart(){
   startOpen=true;
   const def=Math.max(0,FIRE.findIndex(f=>f.n==='CNIS Luxembourg'));
@@ -82236,7 +82236,13 @@ const radioHTML=()=>{const fl=[['alle','Alle'],['ein','Einsätze'],['log','Logis
   const rows=S.radio.filter(l=>rf==='alle'||radCat(l)===rf);
   return `<div class="stabs" style="margin-bottom:6px">${fl.map(([k,l])=>`<button data-act="rfilt" data-t="${k}" class="${rf===k?'on':''}">${l}</button>`).join('')}</div>`+(rows.length?rows.map(l=>`<div class="l ${l.c}"><span class="t">${l.t}</span> <span class="w">${l.w}</span> ${l.s?`<span class="fms s${l.s}" style="width:16px;height:16px;font-size:11px">${l.s}</span>`:''} ${l.m}</div>`).join(''):'<div class="empty">Keine Meldungen.</div>')};
 
-function aufgHTML(){return `<div class="fgrid"><div class="stack">${aufgHTML0()}</div><div class="stack">${lagerSum()}${reportCard()}${repCard()}</div></div>`}
+function bereitCard(){const st=stOf(S.sel)||S.stations[0];if(!st)return '';
+  const vs=vOf(st),ok=vs.filter(vok).length,fr=st.staff.filter(isFree).length,cond=Math.round(st.cond??100);
+  const lt=(typeof stockCost==='function')?stockCost(st):0;
+  const pc=(v,g)=>v>=g?'ok':(v>=g*.6?'amb':'bad');
+  const row=(n,v,g,t)=>`<div class="row"><span>${n}</span><span class="tag ${pc(v,g)}">${t}</span></div>`;
+  return `<div class="card"><h2>Einsatzbereitschaft</h2>${row('🚒 Fahrzeuge einsatzklar',ok,Math.max(1,vs.length),ok+' / '+vs.length)}${row('👥 Personal verfügbar',fr,Math.max(1,st.staff.length),fr+' / '+st.staff.length)}${row('🏠 Zustand der Wache',cond,80,cond+' %')}${row('📦 Material',lt<=0?1:0,1,lt<=0?'aufgefüllt':'Nachschub '+fmt(lt))}<div class="hint">Wartung, Wäsche und Lager erledigst du selbst als Wachleiter – das hält die Wache bereit und senkt Ausfälle.</div></div>`}
+function aufgHTML(){return `<div class="fgrid"><div class="stack">${aufgHTML0()}</div><div class="stack">${bereitCard()}${lagerSum()}${reportCard()}${repCard()}</div></div>`}
 function aufgHTML0(){
   const acts=S.daily.map((d,i)=>{
     if(d.t==='act'){if(d.chore==='fl'&&d.done)return '';
@@ -82244,7 +82250,7 @@ function aufgHTML0(){
       return `<div class="row"><div>${d.chore?choreName(d):d.n}<div class="m">${d.chore?choreInfo(d):'Wachleiter · '+d.dur+' min · '+fmt(d.rew*fxKue())}${' · 📍 '+(ROOMN[d.loc||actLoc(d)]||'')}</div></div><div style="display:flex;gap:6px;align-items:center">${d.run&&actPaused(d)?(alarmOn()?'<span class="tag amb">⏸ Einsatz hat Priorität</span>':`<button class="btn sm" data-act="dgo" data-i="${i}">📍 Hingehen</button>`):''}${right}</div></div>`}
     const p=Math.min(S.today[d.g],d.target);
     return `<div class="row"><div>${d.n}<div class="m">${p} / ${d.target} · ${fmt(d.rew*fxKue())}</div></div>${d.done?'<span class="tag ok">✓</span>':`<span class="tag">${p}/${d.target}</span>`}</div>`}).join('');
-  return `<div class="card"><h2>Tagesaufgaben</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle vier Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Diese Aufgaben erledigst du selbst als Wachleiter im jeweiligen Raum – sie binden kein Personal, laufen nur solange du dort bist und pausieren bei Alarm.'}</div></div>
+  return `<div class="card"><h2>Tagesplan des Wachleiters</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle vier Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Diese Aufgaben erledigst du selbst als Wachleiter im jeweiligen Raum – sie binden kein Personal, laufen nur solange du dort bist und pausieren bei Alarm.'}</div></div>
   ${flowHTML()}${logiHTML()}<div class="card"><h2>Bilanz</h2><div class="row"><span>Einsätze abgeschlossen</span><b>${S.stats.done}</b></div><div class="row"><span>Nicht rechtzeitig besetzt</span><b>${S.stats.failed}</b></div><div class="row"><span>Verdient insgesamt</span><b>${fmt(S.stats.earned)}</b></div><div class="row"><span>Tageskosten (Löhne + Unterhalt)</span><b>${fmt(Math.round(dayFixed()))}</b></div></div>`;
 }
 function draw(){
@@ -82282,7 +82288,7 @@ const TECH={
  pr:{n:'Öffentlichkeitsarbeit',i:'📣',cost:10000,days:4,rep:10,req:'train',d:'Einsatzerlöse +8 %'}
 };
 const hasT=k=>!!(S&&S.tech&&S.tech[k]);
-const TITLES=[[0,'Freiwillige Löschgruppe'],[5,'Ortsfeuerwehr'],[10,'Stützpunktwehr'],[18,'Regionale Rettungswache'],[28,'Leuchtturm des Rettungswesens']];
+const TITLES=[[0,'Kleine Feuerwache'],[5,'Ortsfeuerwache'],[10,'Stützpunktwache'],[18,'Regionale Rettungswache'],[28,'Leuchtturm des Rettungswesens']];
 const titleOf=r=>TITLES.filter(t=>r>=t[0]).pop();
 const nextTitle=r=>TITLES.find(t=>t[0]>r);
 const grantOf=()=>Math.min(800,S.rep*25)+100*cntAll('heli');
@@ -82331,8 +82337,8 @@ const ACH=[
  {id:'e10',n:'Erste Schritte',d:'10 Einsätze abschließen',rew:1000,c:()=>S.stats.done>=10},
  {id:'e50',n:'Routinier',d:'50 Einsätze abschließen',rew:3000,c:()=>S.stats.done>=50},
  {id:'e150',n:'Einsatzprofi',d:'150 Einsätze abschließen',rew:8000,c:()=>S.stats.done>=150},
- {id:'w2',n:'Zweites Standbein',d:'2 Wachen betreiben',rew:2000,c:()=>S.stations.length>=2},
- {id:'w3',n:'Netzwerk',d:'3 Wachen betreiben',rew:5000,c:()=>S.stations.length>=3},
+ {id:'w2',n:'Wache im Aufbau',d:'Wache auf 9 Räume erweitert',rew:2000,c:()=>S.stations.some(q=>FLORD.reduce((a,f)=>a+(q.fl[f]?q.fl[f].length:0),0)>=9)},
+ {id:'w3',n:'Große Wache',d:'3 Fahrzeuge im Fuhrpark',rew:5000,c:()=>S.vehicles.length>=3},
  {id:'t7',n:'Eine Woche geschafft',d:'Tag 7 erreichen',rew:1000,c:()=>S.day>=7},
  {id:'t30',n:'Ein Monat im Dienst',d:'Tag 30 erreichen',rew:5000,c:()=>S.day>=30},
  {id:'r10',n:'Guter Ruf',d:'Ansehen 10',rew:3000,c:()=>S.rep>=10},
@@ -82417,7 +82423,7 @@ function wirtHTML(){
     const tos=(fn)=>S.stations.filter(o=>o.id!==q.id).map(o=>fn(o)).join('');
     const vs=vOf(q).filter(vok).map(v=>`<div class="m" style="margin-top:3px">${VT[v.type].i} ${call(v)} ${tos(o=>`<button class="btn sm" data-act="xv" data-id="${v.id}" data-to="${o.id}" ${vFull(o,v.type)?'disabled':''}>→ ${S.stations.indexOf(o)+1}</button>`)}</div>`).join('');
     return `<div class="row" style="align-items:flex-start"><div><b>${i+1}. ${q.name}</b><div class="m">👥 ${q.staff.filter(isFree).length} frei / ${q.staff.length} (max ${pcap(q)}) · 🚒 ${vFire(q).length}/${slots(q)}${rslots(q)?' · 🚑 '+vRD(q).length+'/'+rslots(q):''} · Zustand ${Math.round(q.cond??100)} %</div>${vs}</div><div style="display:flex;gap:4px;align-items:center">👤${tos(o=>`<button class="btn sm" data-act="xp" data-from="${q.id}" data-to="${o.id}" ${o.staff.length>=pcap(o)?'disabled':''}>→ ${S.stations.indexOf(o)+1}</button>`)}</div></div>`}).join('');
-  const ko1=`<div class="card"><h2>Wachen-Koordination</h2><div class="row"><span>Gesamt</span><span class="m">👥 ${totalPeople()} · 🚒 ${S.vehicles.length} · 🚨 ${S.incidents.length} offen</span></div>${coord}</div>`;
+  const ko1x=`<div class="card"><h2>Wachen-Koordination</h2><div class="row"><span>Gesamt</span><span class="m">👥 ${totalPeople()} · 🚒 ${S.vehicles.length} · 🚨 ${S.incidents.length} offen</span></div>${coord}</div>`;
   const ko='';
   const ev=`<div class="card"><h2>Ereignisse</h2>${S.evlog.map(e=>`<div class="row"><span>${e.m}</span><span class="m">Tag ${e.d}</span></div>`).join('')||'<div class="m">Noch nichts Besonderes passiert.</div>'}<div class="m" style="margin-top:6px">Schwierigkeit: ${DIFFS[S.diff.k]?DIFFS[S.diff.k].n:'Normal'} · Szenario: ${(SCN.find(x=>x.k===S.sc)||SCN[0]).n}</div></div>`;
   return `<div class="fgrid"><div class="stack">${councilHTML()}${dayCard()}${bil}${kred}${ans}${ko}${statHTML()}</div><div class="stack">${matHTML()}${fors}${ziele}${mst}${ev}</div></div>`;
@@ -82461,11 +82467,11 @@ function menuHTML(){
 }
 function openMenu(msg){menuMsg=msg||'';showModal(menuHTML())}
 const TUT=[
- ['🚨 Willkommen bei WACH 112','Du leitest eine Feuerwache in Luxemburg. Neue Einsätze erscheinen auf der Karte und in der Liste. Alarmiert wird immer von Hand: Einsatz anklicken, Fahrzeuge wählen, losschicken. An der Einsatzstelle läuft alles automatisch.'],
+ ['🚨 Willkommen bei WACH 112','Du leitest eine einzige Feuerwache in Luxemburg und baust sie mit deinem Geld aus. Neue Einsätze erscheinen auf der Karte und in der Liste. Alarmiert wird immer von Hand: Einsatz anklicken, Fahrzeuge wählen, losschicken. An der Einsatzstelle läuft alles automatisch.'],
  ['🗺️ Karte & Einsätze','Die Fahrzeuge fahren auf dem echten Straßennetz. Mit Mausrad oder zwei Fingern zoomst du, die Ebenen-Knöpfe blenden Fahrzeuge, Einsätze, Wachen, Krankenhäuser und eine Heatmap ein.'],
- ['🏠 Wache ausbauen','Im Reiter Wachen wählst du ein freies Feld, dann öffnet sich die Raumliste. Garagen zeigen zur Straße, weitere Räume baust du dahinter oder auf anderen Etagen. Höhere Stufen verbessern die Wirkung.'],
- ['👥 Personal & Fuhrpark','Stelle Kräfte ein, schicke sie auf Lehrgänge und halte Fahrzeuge in Schuss. Müde, kranke oder unterbesetzte Wachen verlieren Zeit. Schichtbetrieb und Jugendfeuerwehr helfen langfristig.'],
- ['💶 Wirtschaft','Im Reiter Wirtschaft siehst du die Bilanz, nimmst Kredite auf, forschst Technologien, erfüllst Wochenziele und verlegst Kräfte zwischen Wachen. Mit gutem Ansehen steigt der Zuschuss.'],
+ ['🏠 Deine Wache','Du startest mit einer Garage, Mannschaftsraum, Küche, WC und Umkleide. Mit Geld baust du Räume, Garagen und Lager aus. Oben im Reiter Wache siehst du den 3D-Rundgang und den Wachleiter.'],
+ ['👥 Personal & Fuhrpark','Stelle Kräfte ein, schicke sie auf Lehrgänge und halte Fahrzeuge in Schuss. Müde, kranke oder unterbesetzte Besatzungen verlieren Zeit. Gute Ausbildung und Wartung halten die Wache einsatzbereit.'],
+ ['💶 Wirtschaft','Im Reiter Wirtschaft siehst du die Bilanz, nimmst Kredite auf, forschst Technologien und erfüllst Wochenziele. Mit gutem Ansehen steigt der Zuschuss.'],
  ['🚒 Besatzung & Rollen','HLF/LF rücken mit Chef de section, Maschinist und 2× Atemschutz aus (4–6 Kräfte), TLF, Drehleiter und RTW mit einem Chef d’agrès. Fehlt eine Rolle, zeigt dir der Alarmdialog, was gebraucht wird. Jede Kraft braucht SAP 1.'],
  ['🚑 Rettungswagen','Baue einen Rettungsdienst-Stützpunkt, dann kannst du RTW kaufen. Er braucht einen Chef d’agrès mit SAP 2 + COM 1 und einen Fahrer mit Maschinist-Lehrgang. Medizinische Einsätze erscheinen erst, wenn du einen RTW hast.'],
  ['📊 Tagesbilanz','Jeden Morgen steht im Funk und im Reiter Wirtschaft, was am Vortag geklappt hat und woran es gehakt hat – zum Beispiel Fahrzeuge, die nicht ausrücken konnten. Im Menü kannst du Einsatzhäufigkeit, Krankheitsrate und Lohnkosten zum Testen verstellen.'],
@@ -82752,7 +82758,7 @@ function lagerSum(){
     const dot=m<.3?'🔴':m<.7?'🟡':'🟢',tl=cntIn(q,'tank')?' · ⛽ '+Math.round(q.diesel||0).toLocaleString('de-DE')+' L':'';
     return `<div class="row"><div>${dot} <b>${q.name}</b><div class="m">${low?low+' Posten unter 70 %':'alles ausreichend'} · ${dirty} Teile in der Reinigung${tl}</div></div><button class="btn sm pri" data-act="restock" data-id="${q.id}" ${low&&S.money>=Math.min(cst,50)?'':'disabled'}>Fehlendes bestellen · ${fmt(cst)}</button></div>`}).join('');
   const tot=S.stations.reduce((a,q)=>a+stockCost(q),0);
-  return `<div class="card"><h2>Lager-Übersicht</h2>${rows}${S.stations.length>1?`<div class="row"><span class="m">Alle Wachen</span><button class="btn sm" data-act="restockall" ${tot>0?'':'disabled'}>Alles auffüllen · ${fmt(tot)}</button></div>`:''}<div class="hint">🟢 ausreichend · 🟡 unter 70 % · 🔴 unter 30 %. Bestellt wird alles, was unter 70 % liegt, bis zur vollen Kapazität. Details stehen in der Wirtschaft unter „Logistik &amp; Material“.</div></div>`}
+  return `<div class="card"><h2>Lager-Übersicht</h2>${rows}${false?`<div class="row"><span class="m">Alle Wachen</span><button class="btn sm" data-act="restockall" ${tot>0?'':'disabled'}>Alles auffüllen · ${fmt(tot)}</button></div>`:''}<div class="hint">🟢 ausreichend · 🟡 unter 70 % · 🔴 unter 30 %. Bestellt wird alles, was unter 70 % liegt, bis zur vollen Kapazität. Details stehen in der Wirtschaft unter „Logistik &amp; Material“.</div></div>`}
 function reportCard(){const R=S.reports||[];
   return `<div class="card"><h2>Einsatzberichte</h2>${R.slice(0,8).map(r=>`<div class="row"><div>${r.i} <b>${r.n}</b> <span class="m">${r.place} · Tag ${r.d}, ${r.t}</span><div class="m">${reportTxt(r)}</div></div></div>`).join('')||'<div class="m">Noch kein abgeschlossener Einsatz.</div>'}</div>`}
 function repCard(){const R=S.rlog||[];
