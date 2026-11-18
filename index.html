@@ -80999,7 +80999,8 @@ const cntIn=(st,k)=>{let n=0;for(const f of FLORD){const a=st.fl[f];if(a)for(con
 const cntRooms=(st,k)=>{let n=0;for(const f of FLORD){const a=st.fl[f];if(a)for(const r of a)if(r.k===k)n++}return n};
 const cntAll=k=>S.stations.reduce((a,s)=>a+cntIn(s,k),0);
 const mn=Math.min;
-const pcap=st=>cntIn(st,'mannschaft')*4+cntIn(st,'schlaf')*6+((st.cat||2)<=2?12:st.cat===3?6:0);
+const pcap=st=>cntIn(st,'mannschaft')*4+cntIn(st,'schlaf')*6+((st.cat||2)<=2?12:st.cat===3?6:st.cat===4?6:0);
+const rosterCap=st=>st.shift?4*pcap(st):pcap(st);
 const QCH=[['fis3','fis2','fis1'],['sap2','san'],['cs','fue']];
 const qHi=o=>Object.keys(QUAL).filter(k=>o[k]&&!QCH.some(c=>{const i=c.indexOf(k);return i>0&&c.slice(0,i).some(h=>o[h])}));
 const slots=st=>cntIn(st,'halle'),rslots=st=>cntIn(st,'rtwhalle');
@@ -81043,7 +81044,7 @@ const stFixSum=()=>S.stations.slice(1).reduce((a,q)=>a+300*CISF[q.cat||2],0);
 const isWE=()=>{const d=gdate().getDay();return d===0||d===6};
 const kindFor=st=>'b';
 const hireCost=k=>k==='b'?1200:300;
-const wageOf=(q,p)=>(S.bal?S.bal.wage:1)*(140+15*rankIdx(p))*(p.k==='v'?.3:((q.cat===3||q.cat===4)?1.35:1))*(shiftOn(q)?.85:1);
+const wageOf=(q,p)=>(S.bal?S.bal.wage:1)*(140+15*rankIdx(p))*(p.k==='v'?.3:((q.cat===3||q.cat===4)?1.35:1))*(shiftOn(q)?.5:1);
 const dayFixed=()=>S.stations.reduce((a,q)=>a+q.staff.reduce((b,p)=>b+wageOf(q,p),0),0)*fxWage()+stFixSum()+S.stations.filter(q=>q.jf).length*150;
 const slotKind=()=>{const hr=rmin()/60;return (hr>=18||hr<6||isWE())?'n':'d'};
 const planOn=(q,v,sk)=>{const p=q.plan&&q.plan[sk];return !p||p[v.id]!==false};
@@ -81292,10 +81293,10 @@ function earn(n,why){finSync();S.money+=n;S.stats.earned+=n;fIn(n,/^Tagesziel|^A
 function newStation(fi,free,cat){
   cat=4;const f=FIRE[fi];
   const st={id:S.uid++,fi:f.n,name:f.n,x:f.x,y:f.y,node:nearestNode(f.x,f.y),rl:0,cat:cat||2,
-    cond:100,stock:{hose:12,pa:6,verb:30,inf:14,med:16,o2:14,beat:6,elek:6,imm:8,psa:40,dec:12,des:6,schaum:10,bind:24,ger:12,trenn:12,sand:80,csa:8,kl:4,tag:2},tagMiss:0,diesel:0,dirty:{hose:0,pa:0,hyg:0,kl:0},bf:{c0:0,c1:12,r0:0,r1:12},fl:initFl(cat||2),staff:[]};
+    cond:100,stock:{hose:12,pa:6,verb:30,inf:14,med:16,o2:14,beat:6,elek:6,imm:8,psa:40,dec:12,des:6,schaum:10,bind:24,ger:12,trenn:12,sand:80,csa:8,kl:4,tag:2},tagMiss:0,diesel:0,dirty:{hose:0,pa:0,hyg:0,kl:0},bf:{c0:0,c1:12,r0:0,r1:12},fl:initFl(cat||2),staff:[],shift:true};
   S.stations.push(st);
   {const R8=[['fis1 fis2 fis3 agt san sap2 fue cs mas',38],['fis1 fis2 fis3 agt san sap2 fue cs mas',31],['fis1 fis2 agt san mas',27],['fis1 fis2 agt san',24],['fis1 fis2 fis3 agt san sap2 fue cs mas',29],['fis1 fis2 agt san mas',33],['fis1 fis2 agt san',20],['fis1 fis2 fis3 agt san sap2 fue',30]],R8b=[['fis1 fis2 agt san mas',23],['fis1 fis2 agt san mas',35],['fis1 fis2 fis3 agt san sap2 fue',27],['fis1 fis2 agt san',19],['fis1 fis2 agt san mas',41],['fis1 fis2 san',18],['fis1 fis2 fis3 agt san sap2 fue cs mas',33],['fis1 fis2 agt san mas',25]],R2=[['fis1 fis2 agt san mas',27],['fis1 fis2 agt san sap2 fue',29]],c=st.cat;
-   (free?(c<=2?R8.concat(R8b):c===3?R8.concat(R8b.slice(0,4)):R8):R2).forEach(([l,ag],i)=>{const q=mkQ(l),p=mkP(q,c===4?'b':c===3?(i%2===0?'b':'v'):'v',ag);if(q.cs)p.xp=130;else if(q.fue)p.xp=45;st.staff.push(p)})}
+   (c===4?[...R8,...R8,...R8,...R8,...R8]:free?(c<=2?R8.concat(R8b):c===3?R8.concat(R8b.slice(0,4)):R8):R2).forEach(([l,ag],i)=>{const q=mkQ(l),p=mkP(q,c===4?'b':c===3?(i%2===0?'b':'v'):'v',ag);if(q.cs)p.xp=130;else if(q.fue)p.xp=45;st.staff.push(p)})}
   return st;
 }
 function addVeh(st,type){const no=S.vehicles.filter(v=>v.st===st.id&&v.type===type).length+1;S.vehicles.push({id:S.uid++,st:st.id,type,no,state:'hall',inc:null,busy:null,eta:0,total:0,dly:0,loc:null,crew:[],eq:[],km:0,cond:100,srv:0,rdy:S.day,fuel:(FUEL[type]||{cap:100}).cap,ld:loadFor(type),dr:{hose:0,pa:0},...tkNew(type)})}
@@ -81306,7 +81307,7 @@ function newGame(fi,scn,dif,cat){
   S={v:6,sc:scn,diff:{k:DF.k,rew:DF.rew,cost:DF.cost,freq:DF.freq},money:DF.money+({ausbau:30000,klein:15000,basis:7000}[scn]||0),rep:2,day:1,min:7*60,start:Date.now(),weather:'klar',stations:[],vehicles:[],incidents:[],daily:[],today:{done:0,ems:0,fire:0},bonus:false,stats:{done:0,failed:0,earned:0},next:8,uid:1,log:[],radio:[],radioN:0,sel:0};
   if(scn==='hitze')S.start=new Date(new Date().getFullYear(),6,12).getTime();
   ensure();S.bal={freq:1,sick:DF.sick||1,wage:DF.wage||1};
-  const st=newStation(fi,true,cat||2);const startStaff={ausbau:4,klein:4,basis:6}[scn];if(startStaff)st.staff=st.staff.slice(0,startStaff);if(scn==='ausbau'){st.stock.hose=4;st.stock.pa=2;st.stock.psa=12;st.stock.tag=1;st.stock.med=4;st.stock.o2=2}S.sel=st.id;
+  const st=newStation(fi,true,cat||2);const startStaff=null;if(startStaff)st.staff=st.staff.slice(0,startStaff);if(scn==='ausbau'){st.stock.hose=4;st.stock.pa=2;st.stock.psa=12;st.stock.tag=1;st.stock.med=4;st.stock.o2=2}S.sel=st.id;
   addVeh(st,'hlf');
   rollDay(true);weekRoll(false);
   if(scn==='tut'){S.coach=0;tutInc(st)}
@@ -81496,7 +81497,7 @@ function cell(fl,c,r){
   if(tool==='erase'){
     if(!cur)return;const d=ROOMS[cur.k];
     if((cur.k==='halle'&&vFire(st).length>slots(st)-1)||(cur.k==='rtwhalle'&&vRD(st).length>rslots(st)-1)){toast('Erst ein Fahrzeug weniger – die Garage wird gebraucht.');return}
-    if((cur.k==='mannschaft'||cur.k==='schlaf')&&st.staff.length>pcap(st)-(cur.k==='schlaf'?6:4)*(cur.lv||1)){toast('Zu viel Personal für weniger Schlafplätze.');return}
+    if((cur.k==='mannschaft'||cur.k==='schlaf')&&st.staff.length>rosterCap(st)-(st.shift?4:1)*(cur.k==='schlaf'?6:4)*(cur.lv||1)){toast('Zu viel Personal für weniger Schlafplätze.');return}
     arr.splice(arr.indexOf(cur),1);S.money+=(cur.inv||d.cost)/2;selRoom=null;say('Raum abgerissen: '+d.n);return}
   if(moving){const o=moving.room;if(cur&&cur!==o){toast('Das Feld ist belegt.');return}
     const err=canPlace(st,fl,o.k,c,r,o);if(err){toast(err);return}
@@ -81632,7 +81633,7 @@ function delEq(vid,k){const v=veh(vid);if(!v||v.state!=='hall'||!v.eq.includes(k
 function hire(n,kk){
   const st=stOf(S.sel);n=n||1;
   for(let i=0;i<n;i++){
-    if(st.staff.length>=pcap(st)){toast('Kein Platz – baue Mannschafts- oder Schlafräume.');return}
+    if(st.staff.length>=rosterCap(st)){toast('Kein Platz – baue Mannschafts- oder Schlafräume.');return}
     const kd=kk||kindFor(st),hc=hireCost(kd);if(S.money<hc){toast('Nicht genug Geld.');return}
     S.money-=hc;const p=mkP({},kd,18+Math.floor(Math.random()*6));st.staff.push(p);say(p.name+' in '+st.name+' als '+(kd==='b'?'Berufler':'Freiwilliger')+' eingestellt (−'+fmt(hc)+').');
   }
@@ -82259,7 +82260,7 @@ function bauHTML(st){
   return `<div class="bau"><div class="card"><h2><input id="stname" class="stname" value="${st.name.replace(/"/g,'')}" maxlength="28" title="Wache umbenennen"> ${emblemUI(st)}</h2><div class="bwrap"><div id="w3dslot"></div></div><div style="margin-top:8px">${effHTML(st)}</div>${ausbauHTML(st)}</div>
   <div class="card palc"><h2>Ausbau</h2><div class="hint" style="margin:0 0 6px">Ein Klick genügt – der Raum wird automatisch an einem passenden Platz gebaut.</div>${list}</div></div>`;
 }
-function hireRows(st){const full=st.staff.length>=pcap(st),c=st.cat||2,ks=c===4?['b']:c===3?['b','v']:['v'];
+function hireRows(st){const full=st.staff.length>=rosterCap(st),c=st.cat||2,ks=c===4?['b']:c===3?['b','v']:['v'];
   return ks.map(k=>`<div class="row"><div><b>${k==='b'?'Berufler ohne Lehrgang':'Freiwilliger ohne Lehrgang'}</b> <span class="m">${k==='b'?'Hauptamtlich, volle Besoldung':'Ehrenamtlich, kleine Aufwandsentschädigung'}</span></div><button class="btn sm" data-act="hire" data-n="1" data-k="${k}" ${full||S.money<hireCost(k)?'disabled':''}>Einstellen (${fmt(hireCost(k))})</button></div>`).join('')}
 function planHTML(st){
   const vs=vOf(st).filter(v=>RL[v.type]);if(!vs.length)return '';
@@ -82271,7 +82272,7 @@ function planHTML(st){
 function shiftCard(st){const c=grpFix(st),need=groupNeed(st),ok=st.staff.length>=4*need,on=shiftOn(st);
   const g=shiftGrp();
   const gr=SGN.map((n,i)=>`<span class="tag ${on&&i===g?'ok':''}">${n}: ${c[i]}${on&&i===g?' ▶':''}</span>`).join(' ');
-  return `<div class="row"><div><b>Schichtbetrieb (4 Gruppen)</b> <span class="m">Immer eine Gruppe im Dienst, Wechsel 6 und 18 Uhr. Lohn −15 %. Benötigt ${need} Kräfte je Gruppe (${4*need} gesamt) – du hast ${st.staff.length}.${ok?'':' <b>Noch zu wenig Personal: alle bleiben rund um die Uhr im Dienst.</b>'}</span><div style="margin-top:4px">${gr}</div></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`}
+  return `<div class="row"><div><b>Schichtbetrieb (4 Gruppen)</b> <span class="m">Immer eine Gruppe im Dienst, Wechsel 6 und 18 Uhr. Lohn je Kraft −50 % (Schichtmodell). Jede Gruppe braucht ${need} Kräfte (${4*need} gesamt) – du hast ${st.staff.length}.${ok?'':' <b>Noch zu wenig Personal: alle bleiben rund um die Uhr im Dienst.</b>'}</span><div style="margin-top:4px">${gr}</div></div><button class="btn sm ${st.shift?'pri':''}" data-act="shift">${st.shift?'AN':'AUS'}</button></div>`}
 function persHTML(st){
   const cands=candsOf(st);
   const pfBar='<div class="seg" style="margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px">'+Object.keys(PFN).map(k=>`<button class="btn sm ${pf===k?'pri':''}" data-act="pfilt" data-t="${k}">${PFN[k]}</button>`).join('')+'</div>';
@@ -82282,13 +82283,13 @@ function persHTML(st){
     const tr=Object.keys(QUAL).filter(k=>!p.q[k]&&preOk(p,k)).map(k=>{const Q=QUAL[k],ro=reqOk(p,k);const ok=ro&&isFree(p)&&cntIn(st,Q.room)>0&&S.money>=Q.cost;return `<button class="btn sm" data-act="train" data-id="${p.id}" data-k="${k}" ${ok?'':'disabled'} ${ro?'':'title="Voraussetzung: '+reqTxt(k).replace(/"/g,"'")+'"'}>${Q.s} ${fmt(Q.cost)}${ro?'':' 🔒'}</button>`}).join(' ');
     return `<div class="row"><div><b>${p.name}</b> <span class="tag">${ageOf(p)} J.</span>${shiftOn(st)?`<span class="tag">Gr. ${SGN[p.grp]}</span>`:''} <span class="tag">${RKN[rk]}</span>${crewOk(p)?'':'<span class="tag amb">'+(p.q.san?'noch nicht fahrberechtigt (unter 16)':'SAP 1 fehlt – nicht einsatzfähig')+'</span>'}${rankXp(p)>rk&&rk<3?`<span class="tag amb">Beförderung wartet auf ${PROMO[rk]}</span>`:''} ${p.k==='v'?'<span class="tag">'+JOBN[jobOf(p)]+'</span>':''} ${p.k==='b'?'<span class="tag amb">Berufler</span>':'<span class="tag">Freiwilliger</span>'} ${q}<div class="m">${stt} · Müdigkeit<span class="mini"><i style="width:${Math.round(p.fat||0)}%"></i></span>Moral<span class="mini g"><i style="width:${Math.round(p.mor==null?70:p.mor)}%"></i></span>XP ${p.xp||0}${nx?' / '+nx:''}</div></div><div class="trn">${tr} <button class="btn sm" data-act="fire" data-id="${p.id}" ${p.busy||p.tr?'disabled':''} title="Entlassen">✕</button></div></div>`}).join('');
   const cr=cands.map(c=>{const q=qHi(c.q).map(k=>`<span class="tag ok">${QUAL[k].s}</span>`).join('')||'<span class="tag">ohne Lehrgang</span>';
-    const dis=st.staff.length>=pcap(st)||S.money<c.cost;
+    const dis=st.staff.length>=rosterCap(st)||S.money<c.cost;
     return `<div class="row"><div><b>${c.name}</b> <span class="tag">${c.age||''} J.</span> ${'<span class="tag amb">Berufler</span>'} ${c.jf?'<span class="tag amb">Jugendfeuerwehr</span>':''} ${q}<div class="m">${c.xp?'Erfahrung '+c.xp+' XP · ':''}${c.jf?'Nachwuchs aus der eigenen Jugendfeuerwehr':'Bewerber'}</div></div><button class="btn sm pri" data-act="cand" data-id="${c.id}" ${dis?'disabled':''}>Einstellen (${c.cost?fmt(c.cost):'kostenlos'})</button></div>`}).join('');
   const schule=cntIn(st,'schule')>0;
   const P1=`<div class="card"><h2>Dienstbetrieb</h2>
   <div class="row"><div><b>Dienstmodell</b><div class="m">Dein Personal ist hauptberuflich. Jetzt – ${dutyTxt(st)}.</div></div></div>${st.cat===4?shiftCard(st):''}
   <div class="row"><div><b>Jugendfeuerwehr</b> <span class="m">Alle 8 Tage ein kostenloser Nachwuchs-Bewerber · 150 €/Tag · braucht einen Schulungsraum.</span></div><button class="btn sm ${st.jf?'pri':''}" data-act="jf" ${(schule||st.jf)&&st.cat!==4?'':'disabled'}>${st.jf?'AN':'AUS'}</button></div></div>`;
-  const P2=`${jugHTML(st)}<div class="card"><h2>Personal ${st.staff.length} / ${pcap(st)}</h2>${pfBar}${rows||'<div class="empty">Niemand in dieser Gruppe.</div>'}
+  const P2=`${jugHTML(st)}<div class="card"><h2>Personal ${st.staff.length} / ${rosterCap(st)}</h2>${st.shift?`<div class="hint" style="margin:0 0 6px">Mannschafts- und Schlafräume bestimmen, wie viele Kräfte gleichzeitig auf der Wache sind (${pcap(st)}). Mit 4 Schichtgruppen kannst du das Vierfache beschäftigen.</div>`:''}${pfBar}${rows||'<div class="empty">Niemand in dieser Gruppe.</div>'}
   ${hireRows(st)}
   <div class="hint">Ausbildung wie beim CGDIS: Die Jugendfeuerwehr macht FIS 1 (ab 14); mit 16 und SAP 1 dürfen Jugendliche als zusätzliche Kraft mitfahren. Danach folgt FIS 2, damit ist ab 18 der Atemschutz (ARI) möglich – erst damit zählt man zur Mindestbesatzung. FIS 3 führt zu COM 1 (Chef d’agrès), COM 2 (Chef de section) geht ab 26 und nach COM 1. Maschinist (LKW-Führerschein) geht ab 21. Jede Kraft braucht SAP 1. Rettungsdienst: SAP 1 ab 16 (Stagiaire), SAP 2 plus COM 1 macht zum Chef d’agrès; der RTW braucht einen Chef d’agrès und einen Fahrer (Maschinist, SAP 1), ein Stagiaire darf als dritte Kraft mitfahren. HLF/LF rücken immer mit Chef de section, Maschinist und zwei ARI aus (4–6 Kräfte), TLF, DLK, RTW und Co. mit Chef d’agrès. Dienstgrade steigen mit XP und Ausbildung: Caporal ab 40 XP mit ARI oder SAP 2, Sergent ab 120 XP mit COM 1, Adjudant ab 300 XP mit COM 2 – je Stufe +3 % Tempo, +15 € Lohn. Ein Dienstjahr dauert 90 Spieltage. Müdigkeit senkt das Tempo bis −20 % und schickt Erschöpfte (ab 90 %) in die Ruhe. Schlaf- und Mannschaftsräume erhöhen die Erholung; Küche, Fitness und Sanitär heben die Moral. Lehrgänge: ARI im Atemschutzraum, alle anderen im Schulungsraum.</div></div>`;
   const P3=`<div class="card"><h2>Bewerber (täglich neu)</h2>${cr||'<div class="empty">Keine Bewerber.</div>'}</div>`;
@@ -82999,7 +83000,7 @@ function act(a,d){
     case 'auto':S.auto=S.auto===false;say(S.auto!==false?'Einsatzablauf vor Ort läuft automatisch.':'Einsatzablauf vor Ort: manuell.');break;
     case 'shift':{const q=stOf(S.sel);if(q)q.shift=!q.shift;break}
     case 'jf':{const q=stOf(S.sel);if(q){q.jf=!q.jf;q.jfD=0}break}
-    case 'cand':{const q=stOf(S.sel);if(!q)break;const c=candsOf(q).find(c=>c.id===+d.id);if(!c)break;if(q.staff.length>=pcap(q)){toast('Kein Platz – baue Mannschafts- oder Schlafräume.');break}if(S.money<c.cost){toast('Nicht genug Geld.');break}S.money-=c.cost;const p=mkP(c.q,c.k||(c.jf?'v':kindFor(q)),c.age);p.name=c.name;p.xp=c.xp;if(c.jf)p.mor=85;q.staff.push(p);q.cands=q.cands.filter(x=>x!==c);say(p.name+' in '+q.name+' eingestellt.','ok');break}
+    case 'cand':{const q=stOf(S.sel);if(!q)break;const c=candsOf(q).find(c=>c.id===+d.id);if(!c)break;if(q.staff.length>=rosterCap(q)){toast('Kein Platz – baue Mannschafts- oder Schlafräume.');break}if(S.money<c.cost){toast('Nicht genug Geld.');break}S.money-=c.cost;const p=mkP(c.q,c.k||(c.jf?'v':kindFor(q)),c.age);p.name=c.name;p.xp=c.xp;if(c.jf)p.mor=85;q.staff.push(p);q.cands=q.cands.filter(x=>x!==c);say(p.name+' in '+q.name+' eingestellt.','ok');break}
     case 'fire':{const q=stOf(S.sel),i=q?q.staff.findIndex(p=>p.id===+d.id):-1;if(i>=0&&!q.staff[i].busy&&!q.staff[i].tr){say(q.staff[i].name+' hat '+q.name+' verlassen.');q.staff.splice(i,1)}break}
     case 'svc':{const v=veh(+d.id);if(v&&v.state==='hall'&&!(v.srv>0)){const c=svcCost(v);if(S.money<c)toast('Nicht genug Geld.');else{S.money-=c;v.srv=Math.round(40+(100-(v.cond??100))*1.8);say('🔧 Wartung gestartet: '+call(v)+' ('+v.srv+' min).')}}break}
     case 'layer':mapF[d.t]=mapF[d.t]?0:1;$('ly_'+d.t).classList.toggle('on',!!mapF[d.t]);if(d.t==='names')$('lbl').style.display=mapF.names?'':'none';scheduleRoads();drawMap();break;
