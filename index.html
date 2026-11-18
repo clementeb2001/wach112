@@ -81060,7 +81060,7 @@ function planCheck(q,sk){
   return {total:vs.length,ok:vs.length-bad.length,bad}}
 function stRoles(q){const o=['hlf','lf','tlf','gwg','wr','dlk','rtw','gw','elw'],t=o.find(t=>S.vehicles.some(v=>v.st===q.id&&v.type===t));return t?RL[t]:null}
 const SGN=['A','B','C','D'];
-const groupNeed=q=>Math.max(4,S.vehicles.filter(v=>v.st===q.id&&RL[v.type]).reduce((a,v)=>a+staffCap(v),0));
+const groupNeed=q=>10;
 const shiftOn=q=>!!(q&&q.shift&&q.staff.length>=4*groupNeed(q));
 function grpFix(q){const c=[0,0,0,0];q.staff.forEach(p=>{if(p.grp>=0&&p.grp<4)c[p.grp]++});q.staff.forEach(p=>{if(!(p.grp>=0&&p.grp<4)){let m=0;for(let g=1;g<4;g++)if(c[g]<c[m])m=g;p.grp=m;c[m]++}});return c}
 const shiftGrp=()=>{const h=S.day*24+rmin()/60;return(((Math.floor((h-6)/12))%4)+4)%4};
@@ -81321,7 +81321,7 @@ function rollDay(first){rollPers(first);if(!first)huTick();if(!first)vacTick();i
   S.weather=isWinter()?(w<.4?'klar':w<.65?'regen':'schnee'):(w<.6?'klar':'regen');
   if(!isWinter()&&Math.random()<.12)S.weather='sturm';
   scWeather(first);S.today={done:0,ems:0,fire:0};S.bonus=false;
-  const acts=shuffle(ACT).slice(0,2).map(a=>({...a,t:'act',run:false,left:0,done:false,st:0}));
+  const acts=shuffle(ACT).slice(0,3).map(a=>({...a,t:'act',run:false,left:0,done:false,st:0}));
   const goals=[];const used={};
   for(const g of shuffle(GOAL)){if(!used[g.g]&&goals.length<2){used[g.g]=1;goals.push({...g,t:'goal',done:false})}}
   const carry=(S.daily||[]).filter(d=>d.chore&&!d.done).map(d=>({...d,run:false,left:0,pids:[],late:d.chore==='hyg'?(d.late||0)+1:d.late}));S.daily=[...acts.map(a=>({...a,crew:0})),...goals,...carry];svcGen();
@@ -81707,7 +81707,7 @@ function sendVeh(inc,v,quiet){
   const cr=pickCrew(st,v.type,v.sz,v.mxo);if((cr.miss&&cr.miss.length)||cr.length<VT[v.type].crew){if(!quiet)toast((cr.miss&&cr.miss.length)?'Besatzung unvollständig für '+call(v)+' – es fehlt: '+cr.miss.join(', ')+'.':'Zu wenig Besatzung für '+call(v)+': '+crewWhy(st)+'.');return false}
   if(cr.some(p=>p.busy==='act'))say('⏸ Dienstaufgabe pausiert – der Einsatz hat Priorität.','bad');
   cr.forEach(p=>p.busy=v.id);v.crew=cr.map(p=>p.id);v._rp={fuel:0,mat:{},sm:0,dm:0,tg:0,hl:0};
-  let t=ausr(st)+anrueck(st)+((S.day-(v.rdy??S.day))>=2?.6:0)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
+  let t=ausr(st)+anrueck(st)+((S.day-(v.rdy??S.day))>=2?.6:0)+(matLow(st)?.7:0)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
   v._ld=0;if(modSlots(v)){const sw=modLoad(st,inc,v);if(sw){v._ld=3*sw;t+=3*sw}}
   v.km=(v.km||0)+R.tm/60*55;useFuel(v,R.tm/60*55);v.cond=Math.max(0,(v.cond??100)-Math.max(.4,2-.5*mn(cntIn(st,'werkstatt'),3)));if(v.cond<40&&!v._wm){v._wm=1;say('🔧 '+call(v)+': Zustand '+Math.round(v.cond)+' % – Wartung einplanen.','bad')}
   if(v.cond<50&&Math.random()<(50-v.cond)/200){t+=10;radio(v,'Status 5 – Panne auf der Anfahrt, ca. 10 min Verzögerung.',5,'bad')}
@@ -82376,7 +82376,7 @@ function bereitCard(){const st=stOf(S.sel)||S.stations[0];if(!st)return '';
   const lt=(typeof stockCost==='function')?stockCost(st):0;
   const pc=(v,g)=>v>=g?'ok':(v>=g*.6?'amb':'bad');
   const row=(n,v,g,t)=>`<div class="row"><span>${n}</span><span class="tag ${pc(v,g)}">${t}</span></div>`;
-  return `<div class="card"><h2>Einsatzbereitschaft</h2>${row('🚒 Fahrzeuge einsatzklar',ok,Math.max(1,vs.length),ok+' / '+vs.length)}${row('👥 Personal verfügbar',fr,Math.max(1,st.staff.length),fr+' / '+st.staff.length)}${row('🏠 Zustand der Wache',cond,80,cond+' %')}${row('📦 Material',lt<=0?1:0,1,lt<=0?'aufgefüllt':'Nachschub '+fmt(lt))}<div class="hint">Wartung, Wäsche und Lager erledigst du selbst als Wachleiter – das hält die Wache bereit und senkt Ausfälle.</div></div>`}
+  return `<div class="card"><h2>Einsatzbereitschaft</h2>${row('🚒 Fahrzeuge einsatzklar',ok,Math.max(1,vs.length),ok+' / '+vs.length)}${row('👥 Personal verfügbar',fr,Math.max(1,st.staff.length),fr+' / '+st.staff.length)}${row('🏠 Zustand der Wache',cond,80,cond+' %')}${row('📦 Material',lt<=0?1:0,1,matLow(st)?'knapp – Ausrückzeit +0,7 min':lt<=0?'aufgefüllt':'Nachschub '+fmt(lt))}<div class="hint">Wartung, Wäsche und Lager erledigst du selbst als Wachleiter – das hält die Wache bereit und senkt Ausfälle.</div></div>`}
 function goalsCard(){const q=stOf(S.sel)||S.stations[0];if(!q)return '';
   const rows=[];
   const need=groupNeed(q);if(!shiftOn(q))rows.push(['👥 Schichtbetrieb freischalten',q.staff.length+' / '+4*need+' Kräfte (4 Gruppen à '+need+')']);
@@ -82391,7 +82391,7 @@ function aufgHTML0(){
       return `<div class="row"><div>${d.chore?choreName(d):d.n}<div class="m">${d.chore?choreInfo(d):'Wachleiter · '+d.dur+' min · '+fmt(d.rew*fxKue())}${' · 📍 '+(ROOMN[d.loc||actLoc(d)]||'')}</div></div><div style="display:flex;gap:6px;align-items:center">${d.run&&actPaused(d)?(alarmOn()?'<span class="tag amb">⏸ Einsatz hat Priorität</span>':`<button class="btn sm" data-act="dgo" data-i="${i}">📍 Hingehen</button>`):''}${right}</div></div>`}
     const p=Math.min(S.today[d.g],d.target);
     return `<div class="row"><div>${d.n}<div class="m">${p} / ${d.target} · ${fmt(d.rew*fxKue())}</div></div>${d.done?'<span class="tag ok">✓</span>':`<span class="tag">${p}/${d.target}</span>`}</div>`}).join('');
-  return `<div class="card"><h2>Tagesplan des Wachleiters</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle vier Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Diese Aufgaben erledigst du selbst als Wachleiter im jeweiligen Raum – sie binden kein Personal, laufen nur solange du dort bist und pausieren bei Alarm.'}</div></div>
+  return `<div class="card"><h2>Tagesplan des Wachleiters</h2>${acts}<div class="hint">${S.bonus?'Tagesbonus erhalten ✓':'Alle Tagesaufgaben erledigt: +1.000 € und +1 Ansehen. Reinigungs- und Lageraufgaben (Schläuche, Atemschutz, RTW-Desinfektion, RTW-Lager) erscheinen automatisch. Diese Aufgaben erledigst du selbst als Wachleiter im jeweiligen Raum – sie binden kein Personal, laufen nur solange du dort bist und pausieren bei Alarm.'}</div></div>
   ${flowHTML()}${logiHTML()}<div class="card"><h2>Bilanz</h2><div class="row"><span>Einsätze abgeschlossen</span><b>${S.stats.done}</b></div><div class="row"><span>Nicht rechtzeitig besetzt</span><b>${S.stats.failed}</b></div><div class="row"><span>Verdient insgesamt</span><b>${fmt(S.stats.earned)}</b></div><div class="row"><span>Tageskosten (Löhne + Unterhalt)</span><b>${fmt(Math.round(dayFixed()))}</b></div></div>`;
 }
 function draw(){
@@ -82745,6 +82745,7 @@ function restockRtw(q){
   say('📦 '+q.name+': Materiallager aufgefüllt ('+n+' Posten, '+fmt(c)+').'+(miss?' ⚠ Nicht genug Geld für alles.':''),miss?'bad':'ok');
 }
 function hygCheck(q){if(S.vehicles.some(v=>v.st===q.id&&v.type==='rtw')&&!S.daily.some(d=>d.chore==='hyg'&&d.st===q.id&&!d.done))S.daily.push({t:'act',chore:'hyg',st:q.id,crew:1,dur:15,rew:0,run:false,left:0,done:false,pids:[],late:0})}
+function matLow(q){try{return skeys(q).some(k=>have(q,k)<capOf(q,k)*.3)}catch(e){return false}}
 function stockCheck(q){if(skeys(q).some(k=>have(q,k)<capOf(q,k)*.5)&&!S.daily.some(d=>d.chore==='stock'&&d.st===q.id&&!d.done))S.daily.push({t:'act',chore:'stock',st:q.id,crew:1,dur:10,rew:0,run:false,left:0,done:false,pids:[]})}
 
 /* ---------- Stützpunkt-System: Material für Wachen ohne eigene Räume ---------- */
