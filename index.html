@@ -81708,7 +81708,7 @@ function sendVeh(inc,v,quiet){
   const cr=pickCrew(st,v.type,v.sz,v.mxo);if((cr.miss&&cr.miss.length)||cr.length<VT[v.type].crew){if(!quiet)toast((cr.miss&&cr.miss.length)?'Besatzung unvollständig für '+call(v)+' – es fehlt: '+cr.miss.join(', ')+'.':'Zu wenig Besatzung für '+call(v)+': '+crewWhy(st)+'.');return false}
   if(cr.some(p=>p.busy==='act'))say('⏸ Dienstaufgabe pausiert – der Einsatz hat Priorität.','bad');
   cr.forEach(p=>p.busy=v.id);v.crew=cr.map(p=>p.id);v._rp={fuel:0,mat:{},sm:0,dm:0,tg:0,hl:0};
-  let t=ausr(st)+anrueck(st)+((S.day-(v.rdy??S.day))>=2?.6:0)+(matLow(st)?.7:0)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
+  let t=ausr(st)+anrueck(st)+((S.day-(v.rdy??S.day))>=2?.6:0)+(matLow(st)?.7:0)+(shiftOn(st)&&!fixOn(st,v)?1:0)+R.tm/emgT(v.type)/wmE(v)*((v.cond??100)<40?1.15:1);
   v._ld=0;if(modSlots(v)){const sw=modLoad(st,inc,v);if(sw){v._ld=3*sw;t+=3*sw}}
   v.km=(v.km||0)+R.tm/60*55;useFuel(v,R.tm/60*55);v.cond=Math.max(0,(v.cond??100)-Math.max(.4,2-.5*mn(cntIn(st,'werkstatt'),3)));if(v.cond<40&&!v._wm){v._wm=1;say('🔧 '+call(v)+': Zustand '+Math.round(v.cond)+' % – Wartung einplanen.','bad')}
   if(v.cond<50&&Math.random()<(50-v.cond)/200){t+=10;radio(v,'Status 5 – Panne auf der Anfahrt, ca. 10 min Verzögerung.',5,'bad')}
@@ -82262,8 +82262,15 @@ function bauHTML(st){
 }
 function hireRows(st){const full=st.staff.length>=rosterCap(st),c=st.cat||2,ks=c===4?['b']:c===3?['b','v']:['v'];
   return ks.map(k=>`<div class="row"><div><b>${k==='b'?'Berufler ohne Lehrgang':'Freiwilliger ohne Lehrgang'}</b> <span class="m">${k==='b'?'Hauptamtlich, volle Besoldung':'Ehrenamtlich, kleine Aufwandsentschädigung'}</span></div><button class="btn sm" data-act="hire" data-n="1" data-k="${k}" ${full||S.money<hireCost(k)?'disabled':''}>Einstellen (${fmt(hireCost(k))})</button></div>`).join('')}
+const fixOn=(q,v)=>!(q.fix&&q.fix[v.id]===false);
+function planShiftHTML(st,vs){
+  const on=st.staff.filter(p=>!p.off&&!p.sick&&!(p.vac>0)).length,fix=vs.filter(v=>fixOn(st,v)),need=fix.reduce((a,v)=>a+RL[v.type].length,0),spr=Math.max(0,on-need);
+  const rows=vs.map(v=>`<div class="row"><span>${VT[v.type].i} <b>${call(v)}</b> <span class="m">Besatzung ${RL[v.type].length}</span></span><button class="btn sm ${fixOn(st,v)?'pri':''}" data-act="fix" data-id="${v.id}">${fixOn(st,v)?'✔ fest besetzt':'– Springer'}</button></div>`).join('');
+  const warn=need>on?`<div class="hint" style="color:var(--amb)">⚠ Die festen Fahrzeuge brauchen ${need} Kräfte, aber nur ${on} sind im Dienst. Nimm Fahrzeuge aus der festen Besetzung oder werbe mehr Leute.</div>`:`<div class="hint" style="color:var(--grn)">✔ ${need} Kräfte auf festen Fahrzeugen · ${spr} Springer auf der Wache (bringen Material und nicht fest besetzte Fahrzeuge).</div>`;
+  return `<div class="card" style="margin-bottom:12px"><h2>Besetzungsplan (Schicht)</h2><div class="hint" style="margin:0 0 6px">Wähle, welche Fahrzeuge die Schichtgruppe fest besetzt (z. B. HLF, DLK). Alle anderen Kräfte sind Springer: Sie rücken je nach Einsatz mit dem nötigen Fahrzeug oder Material aus. Nicht fest besetzte Fahrzeuge brauchen etwa 1 Minute länger, bis sie ausrücken.</div>${rows}${warn}</div>`}
 function planHTML(st){
   const vs=vOf(st).filter(v=>RL[v.type]);if(!vs.length)return '';
+  if(shiftOn(st))return planShiftHTML(st,vs);
   const cat=st.cat||2,cl=(s,v)=>`<button class="btn sm ${planOn(st,v,s)?'pri':''}" data-act="plan" data-id="${v.id}" data-s="${s}" title="${planOn(st,v,s)?'Wird besetzt – anklicken zum Abschalten':'Nicht besetzt – anklicken zum Einteilen'}">${planOn(st,v,s)?'✔ besetzt':'– aus'}</button>`;
   const rows=vs.map(v=>`<div class="row"><span>${VT[v.type].i} <b>${call(v)}</b> <span class="m">Mindestbesatzung ${RL[v.type].length} · voll ${staffCap(v)}</span></span><span style="display:flex;gap:6px;align-items:center"><span class="m">Tag</span>${cat===1?'<span class="tag">–</span>':cl('d',v)}<span class="m">Abend/WE</span>${cl('n',v)}</span></div>`).join('');
   const chk=(s,l)=>{const c=planCheck(st,s);return c.bad.length?`<div class="hint" style="color:var(--amb)">⚠ ${l}: nur ${c.ok}/${c.total} Fahrzeuge voll besetzbar – ${c.bad.map(b=>call(b.v)+': '+b.txt).join(' · ')}. Mehr Personal einstellen oder ausbilden.</div>`:`<div class="hint" style="color:var(--grn)">✔ ${l}: alle ${c.total} eingeteilten Fahrzeuge sind besetzbar.</div>`};
@@ -82960,6 +82967,7 @@ function act(a,d){
     case 'refit':{const v=veh(+d.id);if(v&&v.state==='hall'&&CFG[v.type])openRefit(v);else toast('Zum Umrüsten muss das Fahrzeug in der Halle stehen.');break}
     case 'cfgrefit':doRefit();break;
     case 'cfgbuy':{const t=cfgT,tot=cfgCost();if(!t)break;hideModal();cfgT=null;buyDo(t,tot);break}
+    case 'fix':{const q=stOf(S.sel);if(!q)break;q.fix=q.fix||{};q.fix[+d.id]=q.fix[+d.id]===false;break}
     case 'plan':{const q=stOf(S.sel);if(!q)break;q.plan=q.plan||{d:{},n:{}};const m=q.plan[d.s]=q.plan[d.s]||{};m[+d.id]=m[+d.id]===false;break}
     case 'menu':openMenu();break;
     case 'mclose':hideModal();break;
